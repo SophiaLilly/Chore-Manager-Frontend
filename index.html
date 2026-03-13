@@ -1,10 +1,26 @@
 <!DOCTYPE html>
-<html>
-	<head>
-		<title>Get It Done</title>
-	</head>
-	<body>
-		<h1>Chore Tracker</h1>
-		<p>If you see this, GitHub Pages works.</p>
-	</body>
+<html lang="en-gb">
+    <head>
+        <title>Chore Tracker</title>
+    </head>
+    <body>
+    <h1>Chore Tracker</h1>
+    <button onclick="testAPI()">Test API</button>
+    <p id="result"></p>
+        <script>
+        async function testAPI() {
+            try {
+                const response = await fetch("https://api.lillywhite.dev/health");
+                const data = await response.json();
+        
+                document.getElementById("result").textContent =
+                    "API Response: " + JSON.stringify(data);
+        
+            } catch (error) {
+                document.getElementById("result").textContent =
+                    "Error: " + error;
+            }
+        }
+        </script>
+    </body>
 </html>
