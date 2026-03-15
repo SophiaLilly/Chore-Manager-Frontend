@@ -76,7 +76,32 @@
                         const ul = document.createElement("ul");
                         data.tasks.forEach(chore => {
                             const li = document.createElement("li");
-                            li.innerText = (chore.completed ? "✓ " : "☐ ") + chore.task;
+
+                            const checkbox = document.createElement("input");
+                            checkbox.type = "checkbox";
+                            checkbox.checked = chore.completed;
+
+                            checkbox.addEventListener("change", async () => {
+                                checkbox.disabled = true;
+                                await fetch("https://api.lillywhite.dev/toggle", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        person: data.user,
+                                        index: chore.index
+                                    })
+                                });
+                                checkbox.disabled = false;
+                            });
+
+                            const label = document.createElement("span");
+                            label.innerText = " " + chore.task;
+
+                            li.appendChild(checkbox);
+                            li.appendChild(label);
+
                             ul.appendChild(li);
                         });
                         choresDiv.appendChild(ul);
