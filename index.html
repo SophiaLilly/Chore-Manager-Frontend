@@ -40,19 +40,13 @@
                             ul.appendChild(li);
                         });
                         choresDiv.appendChild(ul);
-
+                    }
                 }
                 catch (error) {
                     statusDiv.innerText =
                         "Error fetching user data.";
                     console.error(error);
                 }
-
-
-
-
-
-
             }
 
             loadUser();
