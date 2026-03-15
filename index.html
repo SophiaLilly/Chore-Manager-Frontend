@@ -30,11 +30,11 @@
 
                     statusDiv.innerText =
                         "Hello " + data.user;
-                    if (data.chores.length === 0) {
+                    if (data.tasks.length === 0) {
                         choresDiv.innerText = "No chores for today!";
                     } else {
                         const ul = document.createElement("ul");
-                        data.chores.forEach(chore => {
+                        data.tasks.forEach(chore => {
                             const li = document.createElement("li");
                             li.innerText = chore;
                             ul.appendChild(li);
