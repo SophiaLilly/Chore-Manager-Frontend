@@ -8,25 +8,50 @@
     <body>
         <h1>Chores</h1>
         <div id="status">Loading...</div>
+        <div id="chores"></div>
         <script>
             async function loadUser() {
 
                 const uuid = window.location.hash.substring(1);
+                const statusDiv = document.getElementById("status");
+                const choresDiv = document.getElementById("chores");
 
                 if (!uuid) {
-                    document.getElementById("status").innerText =
+                    statusDiv.innerText =
                         "Missing user UUID in URL.";
                     return;
                 }
 
-                const response = await fetch(
-                    `https://api.lillywhite.dev/today?uuid=${uuid}`
-                );
+                try {
+                    const response = await fetch(
+                        `https://api.lillywhite.dev/today?uuid=${uuid}`
+                    );
+                    const data = await response.json();
 
-                const data = await response.json();
+                    statusDiv.innerText =
+                        "Hello " + data.user;
+                    if (data.chores.length === 0) {
+                        choresDiv.innerText = "No chores for today!";
+                    } else {
+                        const ul = document.createElement("ul");
+                        data.chores.forEach(chore => {
+                            const li = document.createElement("li");
+                            li.innerText = chore;
+                            ul.appendChild(li);
+                        });
+                        choresDiv.appendChild(ul);
 
-                document.getElementById("status").innerText =
-                    "Hello " + data.user;
+                }
+                catch (error) {
+                    statusDiv.innerText =
+                        "Error fetching user data.";
+                    console.error(error);
+                }
+
+
+
+
+
 
             }
 
