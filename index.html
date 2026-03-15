@@ -36,7 +36,7 @@
                         const ul = document.createElement("ul");
                         data.tasks.forEach(chore => {
                             const li = document.createElement("li");
-                            li.innerText = chore;
+                            li.innerText = (chore.completed ? "✓ " : "☐ ") + chore.task;
                             ul.appendChild(li);
                         });
                         choresDiv.appendChild(ul);
