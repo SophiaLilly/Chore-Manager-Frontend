@@ -41,11 +41,48 @@
                 margin: auto;
             }
         }
+
+        #navbar {
+            position: sticky;
+            top: 0;
+            background: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-left {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .nav-right a {
+            margin-left: 15px;
+            text-decoration: none;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .nav-right a:hover {
+            text-decoration: underline;
+        }
         </style>
         <link rel="icon" href="./favicon.ico">
         <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     </head>
     <body>
+        <div id="navbar">
+            <div class="nav-left">Get It Done</div>
+            <div class="nav-right">
+                <a href="#" id="homeLink">Home</a>
+                <a href="#" id="adminLink" style="display:none;">Admin</a>
+            </div>
+        </div>
         <h1>Chores</h1>
         <div id="status">Loading...</div>
         <div id="chores"></div>
@@ -67,6 +104,7 @@
                         `https://api.lillywhite.dev/today?uuid=${uuid}`
                     );
                     const data = await response.json();
+                    setupNav(uuid, data.is_admin);
 
                     statusDiv.innerText =
                         "Hello " + data.user;
@@ -114,7 +152,20 @@
                 }
             }
 
+            function setupNav(uuid, isAdmin) {
+                const homeLink = document.getElementById("homeLink");
+                const adminLink = document.getElementById("adminLink");
+
+                homeLink.href = `#${uuid}`;
+
+                if (isAdmin) {
+                    adminLink.style.display = "inline";
+                    adminLink.href = `admin.html#${uuid}`;
+                }
+            }
+
             loadUser();
         </script>
     </body>
+
 </html>
