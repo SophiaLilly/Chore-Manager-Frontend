@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html lang="en-GB">
+<head>
+    <title>Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .section {
+            background: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        button {
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .delete {
+            background: #ffdddd;
+        }
+
+        .add-row {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 8px;
+            margin-right: 10px;
+        }
+
+        @media (min-width: 600px) {
+            body {
+                max-width: 600px;
+                margin: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <div id="status">Loading...</div>
+
+    <div id="pools"></div>
+
+    <script>
+    const API = "https://api.lillywhite.dev";
+
+    async function loadAdmin() {
+        const uuid = window.location.hash.substring(1);
+        const status = document.getElementById("status");
+        const container = document.getElementById("pools");
+
+        if (!uuid) {
+            status.innerText = "Missing UUID";
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/admin/pools?uuid=${uuid}`);
+            const data = await res.json();
+
+            if (!data.is_admin) {
+                status.innerText = "Access denied.";
+                return;
+            }
+
+            status.innerText = "Admin access granted";
+
+            container.innerHTML = "";
+
+            ["daily", "weekly", "monthly"].forEach(type => {
+                const section = document.createElement("div");
+                section.className = "section";
+
+                const title = document.createElement("h2");
+                title.innerText = type.charAt(0).toUpperCase() + type.slice(1);
+
+                const ul = document.createElement("ul");
+
+                data[type].forEach(task => {
+                    const li = document.createElement("li");
+
+                    const span = document.createElement("span");
+                    span.innerText = task;
+
+                    const btn = document.createElement("button");
+                    btn.innerText = "X";
+                    btn.className = "delete";
+
+                    btn.onclick = async () => {
+                        await fetch(`${API}/admin/remove`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ uuid, type, task })
+                        });
+                        loadAdmin();
+                    };
+
+                    li.appendChild(span);
+                    li.appendChild(btn);
+                    ul.appendChild(li);
+                });
+
+                const addRow = document.createElement("div");
+                addRow.className = "add-row";
+
+                const input = document.createElement("input");
+                input.placeholder = "New task...";
+
+                const addBtn = document.createElement("button");
+                addBtn.innerText = "Add";
+
+                addBtn.onclick = async () => {
+                    if (!input.value.trim()) return;
+
+                    await fetch(`${API}/admin/add`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            uuid,
+                            type,
+                            task: input.value.trim()
+                        })
+                    });
+
+                    input.value = "";
+                    loadAdmin();
+                };
+
+                addRow.appendChild(input);
+                addRow.appendChild(addBtn);
+
+                section.appendChild(title);
+                section.appendChild(ul);
+                section.appendChild(addRow);
+
+                container.appendChild(section);
+            });
+
+        } catch (err) {
+            status.innerText = "Error loading admin data.";
+            console.error(err);
+        }
+    }
+
+    loadAdmin();
+    </script>
+</body>
+</html>
