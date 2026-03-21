@@ -69,6 +69,15 @@
     <div id="status">Loading...</div>
 
     <div id="pools"></div>
+    <div class="section">
+        <h2>Shared To-Do List</h2>
+        <ul id="todoList"></ul>
+
+        <div class="add-row">
+            <input id="todoInput" placeholder="New task..." />
+            <button onclick="addTodo()">Add</button>
+        </div>
+    </div>
 
     <script>
     const API = "https://api.lillywhite.dev";
@@ -77,6 +86,7 @@
         const uuid = window.location.hash.substring(1);
         const status = document.getElementById("status");
         const container = document.getElementById("pools");
+        container.innerHTML = "<p>Loading...</p>";
 
         if (!uuid) {
             status.innerText = "Missing UUID";
@@ -169,6 +179,79 @@
             status.innerText = "Error loading admin data.";
             console.error(err);
         }
+        await loadTodo(uuid);
+    }
+
+    async function loadTodo(uuid) {
+        const res = await fetch(`${API}/admin/todo?uuid=${uuid}`);
+        const data = await res.json();
+
+        const list = document.getElementById("todoList");
+        list.innerHTML = "";
+
+        data.items.forEach(item => {
+            const li = document.createElement("li");
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = item.completed;
+
+            checkbox.onchange = async () => {
+                await fetch(`${API}/admin/todo/toggle`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        uuid,
+                        index: item.index
+                    })
+                });
+                loadAdmin(); // refresh everything
+            };
+
+            const span = document.createElement("span");
+            span.innerText = " " + item.text;
+
+            const del = document.createElement("button");
+            del.innerText = "X";
+            del.className = "delete";
+
+            del.onclick = async () => {
+                await fetch(`${API}/admin/todo/delete`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        uuid,
+                        index: item.index
+                    })
+                });
+                loadAdmin();
+            };
+
+            li.appendChild(checkbox);
+            li.appendChild(span);
+            li.appendChild(del);
+
+            list.appendChild(li);
+        });
+    }
+
+    async function addTodo() {
+        const uuid = window.location.hash.substring(1);
+        const input = document.getElementById("todoInput");
+
+        if (!input.value.trim()) return;
+
+        await fetch(`${API}/admin/todo/add`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                uuid,
+                text: input.value.trim()
+            })
+        });
+
+        input.value = "";
+        loadAdmin();
     }
 
     loadAdmin();
