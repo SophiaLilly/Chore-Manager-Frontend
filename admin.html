@@ -156,6 +156,82 @@
             document.getElementById("adminLink").href = `admin.html#${uuid}`;
         }
 
+        async function loadTasks(uuid) {
+            const res = await fetch(`${API}/admin/tasks?uuid=${uuid}`);
+            const data = await res.json();
+
+            const list = document.getElementById("taskList");
+            list.innerHTML = "";
+
+            data.tasks.forEach((task, index) => {
+                const li = document.createElement("li");
+
+                const left = document.createElement("div");
+                left.className = "left";
+
+                const text = document.createElement("span");
+                text.innerText =
+                    `${task.name} (d:${task.difficulty}, every:${task.every_x_days}, days:${task.allowed_days?.join(",")})`;
+
+                left.appendChild(text);
+
+                const del = document.createElement("button");
+                del.innerText = "X";
+                del.className = "delete";
+
+                del.onclick = async () => {
+                    await fetch(`${API}/admin/tasks/delete`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({ uuid, index })
+                    });
+                    loadAdmin();
+                };
+
+                li.appendChild(left);
+                li.appendChild(del);
+
+                list.appendChild(li);
+            });
+        }
+
+        async function addTask() {
+            const uuid = window.location.hash.substring(1);
+
+            const name = document.getElementById("taskName").value.trim();
+            const difficulty = parseInt(document.getElementById("taskDifficulty").value) || 1;
+            const interval = parseInt(document.getElementById("taskInterval").value) || 1;
+
+            const daysRaw = document.getElementById("taskDays").value;
+            const allowed_days = daysRaw
+                ? daysRaw.split(",").map(d => parseInt(d.trim()))
+                : null;
+
+            if (!name) return;
+
+            await fetch(`${API}/admin/tasks/add`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    uuid,
+                    task: {
+                        name,
+                        difficulty,
+                        every_x_days: interval,
+                        allowed_days,
+                        last_added: null
+                    }
+                })
+            });
+
+            document.getElementById("taskName").value = "";
+            document.getElementById("taskDifficulty").value = "";
+            document.getElementById("taskInterval").value = "";
+            document.getElementById("taskDays").value = "";
+
+            loadAdmin();
+        }
+
         async function loadAdmin() {
             const uuid = window.location.hash.substring(1);
             const status = document.getElementById("status");
