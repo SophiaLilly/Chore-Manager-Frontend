@@ -96,25 +96,31 @@
 
             .add-row {
                 display: flex;
-                flex-direction: column; /* stack vertically */
+                flex-direction: column;
                 gap: 10px;
                 margin-top: 10px;
             }
 
-            input {
-                flex: 1;
-                padding: 10px;
-                border-radius: 8px;
-                border: 1px solid #ddd;
-                margin-right: 10px;
-                font-size: 16px;
+            .add-row input {
+                width: 100%;
+                flex: none;
+            }
+
+            .add-row button {
                 width: 100%;
             }
 
             @media (min-width: 600px) {
-                body {
-                    max-width: 500px;
-                    margin: auto;
+                .add-row {
+                    flex-direction: row;
+                }
+
+                .add-row input {
+                    flex: 1;
+                }
+
+                .add-row button {
+                    width: auto;
                 }
             }
         </style>
@@ -238,7 +244,6 @@
         async function loadAdmin() {
             const uuid = window.location.hash.substring(1);
             const status = document.getElementById("status");
-            const container = document.getElementById("pools");
 
             if (!uuid) {
                 status.innerText = "Missing UUID";
@@ -247,28 +252,22 @@
 
             setupNav(uuid);
 
-            container.innerHTML = "<p>Loading...</p>";
-
             try {
-                const res = await fetch(`${API}/admin/pools?uuid=${uuid}`);
+                const res = await fetch(`${API}/admin/tasks?uuid=${uuid}`);
+                if (!res.ok) {
+                    throw new Error("API error: " + res.status);
+                }
                 const data = await res.json();
 
-                if (!data.is_admin) {
-                    status.innerText = "Access denied.";
-                    return;
-                }
-
                 status.innerText = "Admin access granted";
-                container.innerHTML = "";
 
                 await loadTasks(uuid);
+                await loadTodo(uuid);
 
             } catch (err) {
                 status.innerText = "Error loading admin data.";
                 console.error(err);
             }
-
-            await loadTodo(uuid);
         }
 
         async function loadTodo(uuid) {
