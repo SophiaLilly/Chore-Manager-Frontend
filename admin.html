@@ -1,261 +1,336 @@
 <!DOCTYPE html>
-
 <html lang="en-GB">
-<head>
-    <title>Admin Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            margin: 20px;
-            background: #f5f5f5;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        .section {
-            background: white;
-            padding: 16px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        li {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        button {
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .delete {
-            background: #ffdddd;
-        }
-
-        .add-row {
-            display: flex;
-            margin-top: 10px;
-        }
-
-        input {
-            flex: 1;
-            padding: 8px;
-            margin-right: 10px;
-        }
-
-        @media (min-width: 600px) {
+    <head>
+        <title>Get It Done - Admin</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <style>
             body {
-                max-width: 600px;
-                margin: auto;
+                font-family: system-ui, sans-serif;
+                margin: 20px;
+                background: #f5f5f5;
             }
-        }
-    </style>
-</head>
-<body>
-    <h1>Admin Dashboard (v0.2)</h1>
-    <div id="status">Loading...</div>
-    <div class="section">
-        <h2>Shared To-Do List</h2>
-        <ul id="todoList"></ul>
 
-        <div class="add-row">
-            <input id="todoInput" placeholder="New task..." />
-            <button onclick="addTodo()">Add</button>
+            h2 {
+                margin-top: 0;
+            }
+
+            #status {
+                text-align: center;
+                margin-bottom: 20px;
+                font-size: 18px;
+            }
+
+            /* NAVBAR (same as index.html) */
+            #navbar {
+                position: sticky;
+                top: 0;
+                background: #ffffff;
+                padding: 12px 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 12px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                z-index: 1000;
+            }
+
+            .nav-left {
+                font-weight: bold;
+                font-size: 18px;
+            }
+
+            .nav-right a {
+                margin-left: 15px;
+                text-decoration: none;
+                color: #333;
+                font-size: 16px;
+            }
+
+            .nav-right a:hover {
+                text-decoration: underline;
+            }
+
+            /* SECTION CARDS */
+            .section {
+                margin-bottom: 20px;
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+            }
+
+            li {
+                background: white;
+                margin-bottom: 10px;
+                padding: 16px;
+                border-radius: 10px;
+                font-size: 18px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .left {
+                display: flex;
+                align-items: center;
+            }
+
+            button {
+                border: none;
+                padding: 6px 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                margin-left: 10px;
+            }
+
+            .delete {
+                background: #ffdddd;
+            }
+
+            .add-row {
+                display: flex;
+                margin-top: 10px;
+            }
+
+            input {
+                flex: 1;
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid #ddd;
+                margin-right: 10px;
+                font-size: 16px;
+            }
+
+            @media (min-width: 600px) {
+                body {
+                    max-width: 500px;
+                    margin: auto;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="navbar">
+            <div class="nav-left">Get It Done (Admin)</div>
+            <div class="nav-right">
+                <a href="#" id="homeLink">Home</a>
+                <a href="#" id="adminLink">Admin</a>
+            </div>
         </div>
-    </div>
-    <div id="pools"></div>
-    <script>
-    const API = "https://api.lillywhite.dev";
+        <div id="status">Loading...</div>
+        <div class="section">
+            <h2>Shared To-Do List</h2>
+            <ul id="todoList"></ul>
 
-    async function loadAdmin() {
-        const uuid = window.location.hash.substring(1);
-        const status = document.getElementById("status");
-        const container = document.getElementById("pools");
-        container.innerHTML = "<p>Loading...</p>";
+            <div class="add-row">
+                <input id="todoInput" placeholder="New task..." />
+                <button onclick="addTodo()">Add</button>
+            </div>
+        </div>
+        <div id="pools"></div>
 
-        if (!uuid) {
-            status.innerText = "Missing UUID";
-            return;
+        <script>
+        const API = "https://api.lillywhite.dev";
+
+        function setupNav(uuid) {
+            document.getElementById("homeLink").href = `index.html#${uuid}`;
+            document.getElementById("adminLink").href = `admin.html#${uuid}`;
         }
 
-        try {
-            const res = await fetch(`${API}/admin/pools?uuid=${uuid}`);
-            const data = await res.json();
+        async function loadAdmin() {
+            const uuid = window.location.hash.substring(1);
+            const status = document.getElementById("status");
+            const container = document.getElementById("pools");
 
-            if (!data.is_admin) {
-                status.innerText = "Access denied.";
+            if (!uuid) {
+                status.innerText = "Missing UUID";
                 return;
             }
 
-            status.innerText = "Admin access granted";
+            setupNav(uuid);
 
-            container.innerHTML = "";
+            container.innerHTML = "<p>Loading...</p>";
 
-            ["daily", "weekly", "monthly"].forEach(type => {
-                const section = document.createElement("div");
-                section.className = "section";
+            try {
+                const res = await fetch(`${API}/admin/pools?uuid=${uuid}`);
+                const data = await res.json();
 
-                const title = document.createElement("h2");
-                title.innerText = type.charAt(0).toUpperCase() + type.slice(1);
+                if (!data.is_admin) {
+                    status.innerText = "Access denied.";
+                    return;
+                }
 
-                const ul = document.createElement("ul");
+                status.innerText = "Admin access granted";
+                container.innerHTML = "";
 
-                data[type].forEach(task => {
-                    const li = document.createElement("li");
+                ["daily", "weekly", "monthly"].forEach(type => {
+                    const section = document.createElement("div");
+                    section.className = "section";
 
-                    const span = document.createElement("span");
-                    span.innerText = task;
+                    const title = document.createElement("h2");
+                    title.innerText = type.charAt(0).toUpperCase() + type.slice(1);
 
-                    const btn = document.createElement("button");
-                    btn.innerText = "X";
-                    btn.className = "delete";
+                    const ul = document.createElement("ul");
 
-                    btn.onclick = async () => {
-                        await fetch(`${API}/admin/remove`, {
+                    data[type].forEach(task => {
+                        const li = document.createElement("li");
+
+                        const left = document.createElement("div");
+                        left.className = "left";
+
+                        const span = document.createElement("span");
+                        span.innerText = task;
+
+                        left.appendChild(span);
+
+                        const btn = document.createElement("button");
+                        btn.innerText = "X";
+                        btn.className = "delete";
+
+                        btn.onclick = async () => {
+                            await fetch(`${API}/admin/remove`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ uuid, type, task })
+                            });
+                            loadAdmin();
+                        };
+
+                        li.appendChild(left);
+                        li.appendChild(btn);
+                        ul.appendChild(li);
+                    });
+
+                    const addRow = document.createElement("div");
+                    addRow.className = "add-row";
+
+                    const input = document.createElement("input");
+                    input.placeholder = "New task...";
+
+                    const addBtn = document.createElement("button");
+                    addBtn.innerText = "Add";
+
+                    addBtn.onclick = async () => {
+                        if (!input.value.trim()) return;
+
+                        await fetch(`${API}/admin/add`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ uuid, type, task })
+                            body: JSON.stringify({
+                                uuid,
+                                type,
+                                task: input.value.trim()
+                            })
                         });
+
+                        input.value = "";
                         loadAdmin();
                     };
 
-                    li.appendChild(span);
-                    li.appendChild(btn);
-                    ul.appendChild(li);
+                    addRow.appendChild(input);
+                    addRow.appendChild(addBtn);
+
+                    section.appendChild(title);
+                    section.appendChild(ul);
+                    section.appendChild(addRow);
+
+                    container.appendChild(section);
                 });
 
-                const addRow = document.createElement("div");
-                addRow.className = "add-row";
+            } catch (err) {
+                status.innerText = "Error loading admin data.";
+                console.error(err);
+            }
 
-                const input = document.createElement("input");
-                input.placeholder = "New task...";
+            await loadTodo(uuid);
+        }
 
-                const addBtn = document.createElement("button");
-                addBtn.innerText = "Add";
+        async function loadTodo(uuid) {
+            const res = await fetch(`${API}/admin/todo?uuid=${uuid}`);
+            const data = await res.json();
 
-                addBtn.onclick = async () => {
-                    if (!input.value.trim()) return;
+            const list = document.getElementById("todoList");
+            list.innerHTML = "";
 
-                    await fetch(`${API}/admin/add`, {
+            data.items.forEach(item => {
+                const li = document.createElement("li");
+
+                const left = document.createElement("div");
+                left.className = "left";
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = item.completed;
+
+                checkbox.onchange = async () => {
+                    await fetch(`${API}/admin/todo/toggle`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: {"Content-Type": "application/json"},
                         body: JSON.stringify({
                             uuid,
-                            type,
-                            task: input.value.trim()
+                            index: item.index
                         })
                     });
-
-                    input.value = "";
                     loadAdmin();
                 };
 
-                addRow.appendChild(input);
-                addRow.appendChild(addBtn);
+                const span = document.createElement("span");
+                span.innerText = " " + item.text;
 
-                section.appendChild(title);
-                section.appendChild(ul);
-                section.appendChild(addRow);
+                left.appendChild(checkbox);
+                left.appendChild(span);
 
-                container.appendChild(section);
+                const del = document.createElement("button");
+                del.innerText = "X";
+                del.className = "delete";
+
+                del.onclick = async () => {
+                    await fetch(`${API}/admin/todo/delete`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({
+                            uuid,
+                            index: item.index
+                        })
+                    });
+                    loadAdmin();
+                };
+
+                li.appendChild(left);
+                li.appendChild(del);
+
+                list.appendChild(li);
+            });
+        }
+
+        async function addTodo() {
+            const uuid = window.location.hash.substring(1);
+            const input = document.getElementById("todoInput");
+
+            if (!input.value.trim()) return;
+
+            await fetch(`${API}/admin/todo/add`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    uuid,
+                    text: input.value.trim()
+                })
             });
 
-        } catch (err) {
-            status.innerText = "Error loading admin data.";
-            console.error(err);
+            input.value = "";
+            loadAdmin();
         }
-        await loadTodo(uuid);
-    }
 
-    async function loadTodo(uuid) {
-        const res = await fetch(`${API}/admin/todo?uuid=${uuid}`);
-        const data = await res.json();
-
-        const list = document.getElementById("todoList");
-        list.innerHTML = "";
-
-        data.items.forEach(item => {
-            const li = document.createElement("li");
-
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.checked = item.completed;
-
-            checkbox.onchange = async () => {
-                await fetch(`${API}/admin/todo/toggle`, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        uuid,
-                        index: item.index
-                    })
-                });
-                loadAdmin(); // refresh everything
-            };
-
-            const span = document.createElement("span");
-            span.innerText = " " + item.text;
-
-            const del = document.createElement("button");
-            del.innerText = "X";
-            del.className = "delete";
-
-            del.onclick = async () => {
-                await fetch(`${API}/admin/todo/delete`, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        uuid,
-                        index: item.index
-                    })
-                });
-                loadAdmin();
-            };
-
-            li.appendChild(checkbox);
-            li.appendChild(span);
-            li.appendChild(del);
-
-            list.appendChild(li);
-        });
-    }
-
-    async function addTodo() {
-        const uuid = window.location.hash.substring(1);
-        const input = document.getElementById("todoInput");
-
-        if (!input.value.trim()) return;
-
-        await fetch(`${API}/admin/todo/add`, {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({
-                uuid,
-                text: input.value.trim()
-            })
-        });
-
-        input.value = "";
         loadAdmin();
-    }
-
-    loadAdmin();
-    </script>
-</body>
+        </script>
+    </body>
 </html>
