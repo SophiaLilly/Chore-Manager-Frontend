@@ -131,11 +131,22 @@
             <ul id="todoList"></ul>
 
             <div class="add-row">
-                <input id="todoInput" placeholder="New task..." />
+                <label for="todoInput"></label><input id="todoInput" placeholder="New task..." />
                 <button onclick="addTodo()">Add</button>
             </div>
         </div>
-        <div id="pools"></div>
+        <div class="section">
+            <h2>Task Manager</h2>
+            <ul id="taskList"></ul>
+
+            <div class="add-row">
+                <input id="taskName" placeholder="Task name" />
+                <input id="taskDifficulty" type="number" placeholder="Difficulty" />
+                <input id="taskInterval" type="number" placeholder="Every X days" />
+                <input id="taskDays" placeholder="Allowed days (e.g. 0,1,2)" />
+                <button onclick="addTask()">Add</button>
+            </div>
+        </div>
 
         <script>
         const API = "https://api.lillywhite.dev";
