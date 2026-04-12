@@ -86,6 +86,23 @@
         <div id="status">Loading...</div>
         <div id="chores"></div>
         <script>
+            function updateCompletionMessage(allCompleted) {
+                const existing = document.getElementById("doneMsg");
+                if (existing) existing.remove();
+
+                if (allCompleted) {
+                    const doneMsg = document.createElement("div");
+                    doneMsg.id = "doneMsg";
+                    doneMsg.innerText = "✅ All tasks completed today!";
+                    doneMsg.style.textAlign = "center";
+                    doneMsg.style.marginBottom = "10px";
+                    doneMsg.style.fontWeight = "bold";
+
+                    const choresDiv = document.getElementById("chores");
+                    document.body.insertBefore(doneMsg, choresDiv);
+                }
+            }
+
             async function loadUser() {
 
                 const uuid = window.location.hash.substring(1);
@@ -106,24 +123,25 @@
                     setupNav(uuid, data.is_admin);
 
                     statusDiv.innerText = `Hello ${data.user} | 🔥 ${data.streak.current} (Best: ${data.streak.best})`;
-                    if (data.streak.all_tasks_completed_today) {
-                        const doneMsg = document.createElement("div");
-                        doneMsg.innerText = "✅ All tasks completed today!";
-                        doneMsg.style.textAlign = "center";
-                        doneMsg.style.marginBottom = "10px";
-                        doneMsg.style.fontWeight = "bold";
-                        document.body.insertBefore(doneMsg, choresDiv);
-                    }
+
+                    updateCompletionMessage(data.streak.all_tasks_completed_today);
+
                     if (data.tasks.length === 0) {
                         choresDiv.innerText = "No chores for today!";
                     } else {
                         const ul = document.createElement("ul");
+                        const checkboxes = [];
                         data.tasks.forEach(chore => {
                             const li = document.createElement("li");
 
                             const checkbox = document.createElement("input");
                             checkbox.type = "checkbox";
                             checkbox.checked = chore.completed;
+                            checkboxes.push(checkbox);
+
+                            const label = document.createElement("span");
+                            label.innerText = " " + chore.task;
+
                             if (chore.completed) {
                                 label.style.textDecoration = "line-through";
                                 label.style.opacity = "0.6";
@@ -132,7 +150,6 @@
                             checkbox.addEventListener("change", async () => {
                                 checkbox.disabled = true;
 
-                                // Toggle task
                                 await fetch("https://api.lillywhite.dev/toggle", {
                                     method: "POST",
                                     headers: {
@@ -144,7 +161,6 @@
                                     })
                                 });
 
-                                // Sync streak
                                 const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
                                     method: "POST",
                                     headers: {
@@ -160,18 +176,18 @@
                                 statusDiv.innerText =
                                     `Hello ${data.user} | 🔥 ${streakData.current_streak} (Best: ${streakData.best_streak})`;
 
-                                if (streakData.streak_status === "active" || streakData.streak_status === "started") {
-                                    location.reload();
-                                }
+                                label.style.textDecoration = checkbox.checked ? "line-through" : "none";
+                                label.style.opacity = checkbox.checked ? "0.6" : "1";
+
+                                const allCompleted = checkboxes.every(cb => cb.checked);
+
+                                updateCompletionMessage(allCompleted);
 
                                 label.style.textDecoration = checkbox.checked ? "line-through" : "none";
                                 label.style.opacity = checkbox.checked ? "0.6" : "1";
 
                                 checkbox.disabled = false;
                             });
-
-                            const label = document.createElement("span");
-                            label.innerText = " " + chore.task;
 
                             li.appendChild(checkbox);
                             li.appendChild(label);
