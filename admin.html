@@ -156,7 +156,6 @@
                 <button onclick="addTask()">Add</button>
             </div>
         </div>
-
         <script>
         const API = "https://api.lillywhite.dev";
 
@@ -165,14 +164,34 @@
             document.getElementById("adminLink").href = `admin.html#${uuid}`;
         }
 
-        async function loadTasks(uuid) {
-            const res = await fetch(`${API}/admin/tasks?uuid=${uuid}`);
-            const data = await res.json();
+        async function verifyAdmin(uuid) {
+            const res = await fetch(`${API}/admin/verify?uuid=${uuid}`);
+            return res.json();
+        }
 
+        async function fetchTasks(uuid) {
+            const res = await fetch(`${API}/admin/tasks?uuid=${uuid}`);
+            return res.json();
+        }
+
+        async function fetchTodo(uuid) {
+            const res = await fetch(`${API}/admin/todo?uuid=${uuid}`);
+            return res.json();
+        }
+
+        function createDeleteButton(onClick) {
+            const btn = document.createElement("button");
+            btn.innerText = "X";
+            btn.className = "delete";
+            btn.onclick = onClick;
+            return btn;
+        }
+
+        function renderTasks(tasks, uuid) {
             const list = document.getElementById("taskList");
             list.innerHTML = "";
 
-            data.tasks.forEach((task, index) => {
+            tasks.forEach((task, index) => {
                 const li = document.createElement("li");
 
                 const left = document.createElement("div");
@@ -184,22 +203,61 @@
 
                 left.appendChild(text);
 
-                const del = document.createElement("button");
-                del.innerText = "X";
-                del.className = "delete";
-
-                del.onclick = async () => {
+                const del = createDeleteButton(async () => {
                     await fetch(`${API}/admin/tasks/delete`, {
                         method: "POST",
                         headers: {"Content-Type": "application/json"},
                         body: JSON.stringify({ uuid, index })
                     });
-                    loadAdmin();
-                };
+                    await loadAdmin();
+                });
 
                 li.appendChild(left);
                 li.appendChild(del);
+                list.appendChild(li);
+            });
+        }
 
+        function renderTodo(items, uuid) {
+            const list = document.getElementById("todoList");
+            list.innerHTML = "";
+
+            items.forEach(item => {
+                const li = document.createElement("li");
+
+                const left = document.createElement("div");
+                left.className = "left";
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = item.completed;
+
+                checkbox.onchange = async () => {
+                    await fetch(`${API}/admin/todo/toggle`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({ uuid, index: item.index })
+                    });
+                    await loadAdmin();
+                };
+
+                const span = document.createElement("span");
+                span.innerText = " " + item.text;
+
+                left.appendChild(checkbox);
+                left.appendChild(span);
+
+                const del = createDeleteButton(async () => {
+                    await fetch(`${API}/admin/todo/delete`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({ uuid, index: item.index })
+                    });
+                    await loadAdmin();
+                });
+
+                li.appendChild(left);
+                li.appendChild(del);
                 list.appendChild(li);
             });
         }
@@ -208,6 +266,8 @@
             const uuid = window.location.hash.substring(1);
 
             const name = document.getElementById("taskName").value.trim();
+            if (!name) return;
+
             const difficulty = parseInt(document.getElementById("taskDifficulty").value) || 1;
             const interval = parseInt(document.getElementById("taskInterval").value) || 1;
 
@@ -215,8 +275,6 @@
             const allowed_days = daysRaw
                 ? daysRaw.split(",").map(d => parseInt(d.trim()))
                 : null;
-
-            if (!name) return;
 
             await fetch(`${API}/admin/tasks/add`, {
                 method: "POST",
@@ -233,99 +291,15 @@
                 })
             });
 
+            clearTaskInputs();
+            await loadAdmin();
+        }
+
+        function clearTaskInputs() {
             document.getElementById("taskName").value = "";
             document.getElementById("taskDifficulty").value = "";
             document.getElementById("taskInterval").value = "";
             document.getElementById("taskDays").value = "";
-
-            loadAdmin();
-        }
-
-        async function loadAdmin() {
-            const uuid = window.location.hash.substring(1);
-            const status = document.getElementById("status");
-
-            if (!uuid) {
-                status.innerText = "Missing UUID";
-                return;
-            }
-
-            setupNav(uuid);
-
-            try {
-                const res = await fetch(`${API}/admin/tasks?uuid=${uuid}`);
-                if (!res.ok) {
-                    throw new Error("API error: " + res.status);
-                }
-                const data = await res.json();
-
-                status.innerText = "Admin access granted";
-
-                await loadTasks(uuid);
-                await loadTodo(uuid);
-
-            } catch (err) {
-                status.innerText = "Error loading admin data.";
-                console.error(err);
-            }
-        }
-
-        async function loadTodo(uuid) {
-            const res = await fetch(`${API}/admin/todo?uuid=${uuid}`);
-            const data = await res.json();
-
-            const list = document.getElementById("todoList");
-            list.innerHTML = "";
-
-            data.items.forEach(item => {
-                const li = document.createElement("li");
-
-                const left = document.createElement("div");
-                left.className = "left";
-
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.checked = item.completed;
-
-                checkbox.onchange = async () => {
-                    await fetch(`${API}/admin/todo/toggle`, {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({
-                            uuid,
-                            index: item.index
-                        })
-                    });
-                    loadAdmin();
-                };
-
-                const span = document.createElement("span");
-                span.innerText = " " + item.text;
-
-                left.appendChild(checkbox);
-                left.appendChild(span);
-
-                const del = document.createElement("button");
-                del.innerText = "X";
-                del.className = "delete";
-
-                del.onclick = async () => {
-                    await fetch(`${API}/admin/todo/delete`, {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({
-                            uuid,
-                            index: item.index
-                        })
-                    });
-                    loadAdmin();
-                };
-
-                li.appendChild(left);
-                li.appendChild(del);
-
-                list.appendChild(li);
-            });
         }
 
         async function addTodo() {
@@ -345,6 +319,41 @@
 
             input.value = "";
             loadAdmin();
+        }
+
+        async function loadAdmin() {
+            const uuid = window.location.hash.substring(1);
+            const status = document.getElementById("status");
+
+            if (!uuid) {
+                status.innerText = "Missing UUID";
+                return;
+            }
+
+            setupNav(uuid);
+
+            try {
+                const verification = await verifyAdmin(uuid);
+        
+                if (!verification.is_admin) {
+                    status.innerText = "Access denied.";
+                    return;
+                }
+
+                status.innerText = `Admin access granted (${verification.user})`;
+
+                const [taskData, todoData] = await Promise.all([
+                    fetchTasks(uuid),
+                    fetchTodo(uuid)
+                ]);
+
+                renderTasks(taskData.tasks, uuid);
+                renderTodo(todoData.items, uuid);
+
+            } catch (err) {
+                status.innerText = "Error loading admin data.";
+                console.error(err);
+            }
         }
 
         loadAdmin();
