@@ -105,8 +105,15 @@
                     const data = await response.json();
                     setupNav(uuid, data.is_admin);
 
-                    statusDiv.innerText =
-                        "Hello " + data.user;
+                    statusDiv.innerText = `Hello ${data.user} | 🔥 ${data.streak.current} (Best: ${data.streak.best})`;
+                    if (data.streak.all_tasks_completed_today) {
+                        const doneMsg = document.createElement("div");
+                        doneMsg.innerText = "✅ All tasks completed today!";
+                        doneMsg.style.textAlign = "center";
+                        doneMsg.style.marginBottom = "10px";
+                        doneMsg.style.fontWeight = "bold";
+                        document.body.insertBefore(doneMsg, choresDiv);
+                    }
                     if (data.tasks.length === 0) {
                         choresDiv.innerText = "No chores for today!";
                     } else {
@@ -117,9 +124,15 @@
                             const checkbox = document.createElement("input");
                             checkbox.type = "checkbox";
                             checkbox.checked = chore.completed;
+                            if (chore.completed) {
+                                label.style.textDecoration = "line-through";
+                                label.style.opacity = "0.6";
+                            }
 
                             checkbox.addEventListener("change", async () => {
                                 checkbox.disabled = true;
+
+                                // Toggle task
                                 await fetch("https://api.lillywhite.dev/toggle", {
                                     method: "POST",
                                     headers: {
@@ -130,6 +143,30 @@
                                         index: chore.index
                                     })
                                 });
+
+                                // Sync streak
+                                const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        uuid: uuid
+                                    })
+                                });
+
+                                const streakData = await streakRes.json();
+
+                                statusDiv.innerText =
+                                    `Hello ${data.user} | 🔥 ${streakData.current_streak} (Best: ${streakData.best_streak})`;
+
+                                if (streakData.streak_status === "active" || streakData.streak_status === "started") {
+                                    location.reload();
+                                }
+
+                                label.style.textDecoration = checkbox.checked ? "line-through" : "none";
+                                label.style.opacity = checkbox.checked ? "0.6" : "1";
+
                                 checkbox.disabled = false;
                             });
 
