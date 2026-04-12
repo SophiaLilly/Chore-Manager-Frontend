@@ -90,116 +90,128 @@
                 const existing = document.getElementById("doneMsg");
                 if (existing) existing.remove();
 
-                if (allCompleted) {
-                    const doneMsg = document.createElement("div");
-                    doneMsg.id = "doneMsg";
-                    doneMsg.innerText = "✅ All tasks completed today!";
-                    doneMsg.style.textAlign = "center";
-                    doneMsg.style.marginBottom = "10px";
-                    doneMsg.style.fontWeight = "bold";
+                if (!allCompleted) return;
 
-                    const choresDiv = document.getElementById("chores");
-                    document.body.insertBefore(doneMsg, choresDiv);
+                const doneMsg = document.createElement("div");
+                doneMsg.id = "doneMsg";
+                doneMsg.innerText = "✅ All tasks completed today!";
+                doneMsg.style.textAlign = "center";
+                doneMsg.style.marginBottom = "10px";
+                doneMsg.style.fontWeight = "bold";
+
+                const choresDiv = document.getElementById("chores");
+                document.body.insertBefore(doneMsg, choresDiv);
+            }
+
+            function updateStatus(statusDiv, user, current, best) {
+                statusDiv.innerText = `Hello ${user} | 🔥 ${current} (Best: ${best})`;
+            }
+
+            async function fetchTodayData(uuid) {
+                const res = await fetch(`https://api.lillywhite.dev/today?uuid=${uuid}`);
+                return res.json();
+            }
+
+            function createTaskElement(chore, data, uuid, checkboxes, statusDiv) {
+                const li = document.createElement("li");
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = chore.completed;
+                checkboxes.push(checkbox);
+
+                const label = document.createElement("span");
+                label.innerText = " " + chore.task;
+
+                updateLabelStyle(label, checkbox.checked);
+
+                checkbox.addEventListener("change", () =>
+                    handleToggle({ checkbox, label, chore, data, uuid, checkboxes, statusDiv })
+                );
+
+                li.appendChild(checkbox);
+                li.appendChild(label);
+
+                return li;
+            }
+
+            function updateLabelStyle(label, checked) {
+                label.style.textDecoration = checked ? "line-through" : "none";
+                label.style.opacity = checked ? "0.6" : "1";
+            }
+
+            async function handleToggle({ checkbox, label, chore, data, uuid, checkboxes, statusDiv }) {
+                checkbox.disabled = true;
+
+                await fetch("https://api.lillywhite.dev/toggle", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        person: data.user,
+                        index: chore.index
+                    })
+                });
+
+                const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ uuid })
+                });
+
+                const streakData = await streakRes.json();
+
+                updateStatus(statusDiv, data.user, streakData.current_streak, streakData.best_streak);
+
+                updateLabelStyle(label, checkbox.checked);
+
+                const allCompleted = checkboxes.every(cb => cb.checked);
+                updateCompletionMessage(allCompleted);
+
+                checkbox.disabled = false;
+            }
+
+            function renderTasks(data, uuid, statusDiv) {
+                const choresDiv = document.getElementById("chores");
+                choresDiv.innerHTML = "";
+
+                if (data.tasks.length === 0) {
+                    choresDiv.innerText = "No chores for today!";
+                    return;
                 }
+
+                const ul = document.createElement("ul");
+                const checkboxes = [];
+
+                data.tasks.forEach(chore => {
+                    const li = createTaskElement(chore, data, uuid, checkboxes, statusDiv);
+                    ul.appendChild(li);
+                });
+
+                choresDiv.appendChild(ul);
             }
 
             async function loadUser() {
-
                 const uuid = window.location.hash.substring(1);
                 const statusDiv = document.getElementById("status");
-                const choresDiv = document.getElementById("chores");
 
                 if (!uuid) {
-                    statusDiv.innerText =
-                        "Missing user UUID in URL.";
+                    statusDiv.innerText = "Missing user UUID in URL.";
                     return;
                 }
 
                 try {
-                    const response = await fetch(
-                        `https://api.lillywhite.dev/today?uuid=${uuid}`
-                    );
-                    const data = await response.json();
+                    const data = await fetchTodayData(uuid);
+
                     setupNav(uuid, data.is_admin);
 
-                    statusDiv.innerText = `Hello ${data.user} | 🔥 ${data.streak.current} (Best: ${data.streak.best})`;
+                    updateStatus(statusDiv, data.user, data.streak.current, data.streak.best);
 
                     updateCompletionMessage(data.streak.all_tasks_completed_today);
 
-                    if (data.tasks.length === 0) {
-                        choresDiv.innerText = "No chores for today!";
-                    } else {
-                        const ul = document.createElement("ul");
-                        const checkboxes = [];
-                        data.tasks.forEach(chore => {
-                            const li = document.createElement("li");
+                    renderTasks(data, uuid, statusDiv);
 
-                            const checkbox = document.createElement("input");
-                            checkbox.type = "checkbox";
-                            checkbox.checked = chore.completed;
-                            checkboxes.push(checkbox);
-
-                            const label = document.createElement("span");
-                            label.innerText = " " + chore.task;
-
-                            if (chore.completed) {
-                                label.style.textDecoration = "line-through";
-                                label.style.opacity = "0.6";
-                            }
-
-                            checkbox.addEventListener("change", async () => {
-                                checkbox.disabled = true;
-
-                                await fetch("https://api.lillywhite.dev/toggle", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({
-                                        person: data.user,
-                                        index: chore.index
-                                    })
-                                });
-
-                                const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({
-                                        uuid: uuid
-                                    })
-                                });
-
-                                const streakData = await streakRes.json();
-
-                                statusDiv.innerText =
-                                    `Hello ${data.user} | 🔥 ${streakData.current_streak} (Best: ${streakData.best_streak})`;
-
-                                label.style.textDecoration = checkbox.checked ? "line-through" : "none";
-                                label.style.opacity = checkbox.checked ? "0.6" : "1";
-
-                                const allCompleted = checkboxes.every(cb => cb.checked);
-
-                                updateCompletionMessage(allCompleted);
-
-                                label.style.textDecoration = checkbox.checked ? "line-through" : "none";
-                                label.style.opacity = checkbox.checked ? "0.6" : "1";
-
-                                checkbox.disabled = false;
-                            });
-
-                            li.appendChild(checkbox);
-                            li.appendChild(label);
-
-                            ul.appendChild(li);
-                        });
-                        choresDiv.appendChild(ul);
-                    }
-                }
-                catch (error) {
-                    statusDiv.innerText =
-                        "Error fetching user data.";
+                } catch (error) {
+                    statusDiv.innerText = "Error fetching user data.";
                     console.error(error);
                 }
             }
@@ -219,5 +231,4 @@
             loadUser();
         </script>
     </body>
-
 </html>
