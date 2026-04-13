@@ -14,6 +14,15 @@
             text-align: center;
         }
 
+        h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
         #status {
             text-align: center;
             margin-bottom: 20px;
@@ -174,20 +183,74 @@
                 const choresDiv = document.getElementById("chores");
                 choresDiv.innerHTML = "";
 
-                if (data.tasks.length === 0) {
+                const allTasks = data.all_tasks;
+
+                if (!allTasks || Object.keys(allTasks).length === 0) {
                     choresDiv.innerText = "No chores for today!";
                     return;
                 }
 
-                const ul = document.createElement("ul");
                 const checkboxes = [];
 
-                data.tasks.forEach(chore => {
-                    const li = createTaskElement(chore, data, uuid, checkboxes, statusDiv);
-                    ul.appendChild(li);
+                Object.entries(allTasks).forEach(([person, tasks]) => {
+                    const section = document.createElement("div");
+
+                    const header = document.createElement("h2");
+                    header.innerText = person;
+                    header.style.marginTop = "20px";
+                    if (person === data.user) {
+                        header.style.color = "#2c7be5";
+                        header.innerText += " (You)";
+                    }
+                    section.appendChild(header);
+
+                    const ul = document.createElement("ul");
+
+                    tasks.forEach(chore => {
+                        const li = document.createElement("li");
+
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.checked = chore.completed;
+
+                        const label = document.createElement("span");
+                        label.innerText = " " + chore.task;
+
+                        updateLabelStyle(label, checkbox.checked);
+
+                        const isOwnTask = person === data.user;
+
+                        if (!isOwnTask) {
+                            checkbox.disabled = true;
+                            label.style.opacity = "0.5";
+                        } else {
+                            checkboxes.push(checkbox);
+
+                            checkbox.addEventListener("change", () =>
+                                handleToggle({
+                                    checkbox,
+                                    label,
+                                    chore,
+                                    data,
+                                    uuid,
+                                    checkboxes,
+                                    statusDiv
+                                })
+                            );
+                        }
+
+                        li.appendChild(checkbox);
+                        li.appendChild(label);
+                        ul.appendChild(li);
+                    });
+
+                    section.appendChild(ul);
+                    choresDiv.appendChild(section);
                 });
 
-                choresDiv.appendChild(ul);
+                const ownTasks = allTasks[data.user] || [];
+                const allCompleted = ownTasks.length > 0 && ownTasks.every(t => t.completed);
+                updateCompletionMessage(allCompleted);
             }
 
             async function loadUser() {
