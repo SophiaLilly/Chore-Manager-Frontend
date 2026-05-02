@@ -102,6 +102,12 @@
                 line-height: 1;
             }
 
+            .left input {
+                width: 100%;
+                padding: 4px;
+                font-size: 14px;
+            }
+
             button {
                 border: none;
                 padding: 6px 10px;
@@ -287,7 +293,7 @@
             const selectedDay = document.getElementById("dayFilter")?.value;
             const sortMode = document.getElementById("sortMode")?.value;
 
-            let filtered = [...tasks];
+            let filtered = tasks.map((t, i) => ({ ...t, originalIndex: i }));
 
             if (selectedDay !== "") {
                 const day = parseInt(selectedDay);
@@ -308,40 +314,121 @@
                 return a.name.localeCompare(b.name);
             });
 
-            filtered.forEach((task, index) => {
+            filtered.forEach((task) => {
+                const index = task.originalIndex;
+
                 const li = document.createElement("li");
 
-                const left = document.createElement("div");
-                left.className = "left";
+                let editing = false;
 
-                const title = document.createElement("div");
-                title.innerText = task.name;
-                title.style.fontWeight = "bold";
+                function renderView() {
+                    li.innerHTML = "";
 
-                const meta = document.createElement("div");
-                meta.style.fontSize = "14px";
-                meta.style.opacity = "0.8";
-                meta.innerText = `Difficulty ${task.difficulty ?? 1} • Every ${task.every_x_days ?? 1} day(s)`;
+                    const left = document.createElement("div");
+                    left.className = "left";
 
-                left.appendChild(title);
-                left.appendChild(meta);
+                    const title = document.createElement("div");
+                    title.innerText = task.name;
+                    title.style.fontWeight = "bold";
 
-                const badges = createDayBadges(task.allowed_days);
-                badges.title = formatDays(task.allowed_days);
+                    const meta = document.createElement("div");
+                    meta.style.fontSize = "14px";
+                    meta.style.opacity = "0.8";
+                    meta.innerText = `Difficulty ${task.difficulty ?? 1} • Every ${task.every_x_days ?? 1} day(s)`;
 
-                left.appendChild(badges);
+                    const badges = createDayBadges(task.allowed_days);
+                    badges.title = formatDays(task.allowed_days);
 
-                const del = createDeleteButton(async () => {
-                    await fetch(`${API}/admin/tasks/delete`, {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({ uuid, index })
+                    left.appendChild(title);
+                    left.appendChild(meta);
+                    left.appendChild(badges);
+
+                    const del = createDeleteButton(async () => {
+                        await fetch(`${API}/admin/tasks/delete`, {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({ uuid, index })
+                        });
+                        await loadAdmin();
                     });
-                    await loadAdmin();
-                });
 
-                li.appendChild(left);
-                li.appendChild(del);
+                    // 👉 click to edit (but ignore delete button)
+                    li.onclick = (e) => {
+                        if (e.target.tagName === "BUTTON") return;
+                        editing = true;
+                        renderEdit();
+                    };
+
+                    li.appendChild(left);
+                    li.appendChild(del);
+                }
+
+                function renderEdit() {
+                    li.innerHTML = "";
+
+                    const left = document.createElement("div");
+                    left.className = "left";
+
+                    const nameInput = document.createElement("input");
+                    nameInput.value = task.name;
+
+                    const diffInput = document.createElement("input");
+                    diffInput.type = "number";
+                    diffInput.value = task.difficulty ?? 1;
+
+                    const intervalInput = document.createElement("input");
+                    intervalInput.type = "number";
+                    intervalInput.value = task.every_x_days ?? 1;
+
+                    const daysInput = document.createElement("input");
+                    daysInput.placeholder = "0,1,2";
+                    daysInput.value = task.allowed_days ? task.allowed_days.join(",") : "";
+
+                    left.appendChild(nameInput);
+                    left.appendChild(diffInput);
+                    left.appendChild(intervalInput);
+                    left.appendChild(daysInput);
+
+                    const save = document.createElement("button");
+                    save.innerText = "Save";
+                    save.style.background = "#ddffdd";
+
+                    save.onclick = async () => {
+                        await fetch(`${API}/admin/tasks/update`, {
+                            method: "POST",
+                            headers: {"Content-Type": "application/json"},
+                            body: JSON.stringify({
+                                uuid,
+                                index,
+                                task: {
+                                    name: nameInput.value.trim(),
+                                    difficulty: parseInt(diffInput.value) || 1,
+                                    every_x_days: parseInt(intervalInput.value) || 1,
+                                    allowed_days: daysInput.value
+                                        ? daysInput.value.split(",").map(d => parseInt(d.trim()))
+                                        : null,
+                                    last_added: task.last_added ?? null
+                                }
+                            })
+                        });
+
+                        await loadAdmin();
+                    };
+
+                    const cancel = document.createElement("button");
+                    cancel.innerText = "Cancel";
+
+                    cancel.onclick = () => {
+                        editing = false;
+                        renderView();
+                    };
+
+                    li.appendChild(left);
+                    li.appendChild(save);
+                    li.appendChild(cancel);
+                }
+
+                renderView();
                 list.appendChild(li);
             });
         }
