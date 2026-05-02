@@ -352,15 +352,32 @@
                         await loadAdmin();
                     });
 
-                    li.onclick = (e) => {
+                    let touchStartY = 0;
+                    let touchStartTime = 0;
+                    let touchMoved = false;
+
+                    li.addEventListener("touchstart", (e) => {
+                        touchStartY = e.touches[0].clientY;
+                        touchStartTime = Date.now();
+                        touchMoved = false;
+                    });
+
+                    li.addEventListener("touchmove", (e) => {
+                        const currentY = e.touches[0].clientY;
+                        if (Math.abs(currentY - touchStartY) > 10) {
+                            touchMoved = true;
+                        }
+                    });
+
+                    li.addEventListener("touchend", (e) => {
                         if (editing) return;
+                        if (touchMoved) return;
+                        if (Date.now() - touchStartTime > 300) return;
                         if (e.target.closest("input, label, button")) return;
 
                         editing = true;
-                        setTimeout(() => {
-                            renderEdit();
-                        }, 0);
-                    };
+                        renderEdit();
+                    });
 
                     li.appendChild(left);
                     li.appendChild(del);
