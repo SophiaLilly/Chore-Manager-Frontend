@@ -7,6 +7,7 @@
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
         <style>
+
             body {
                 font-family: system-ui, sans-serif;
                 margin: 20px;
@@ -54,7 +55,6 @@
                 text-decoration: underline;
             }
 
-            /* SECTION CARDS */
             .section {
                 margin-bottom: 20px;
             }
@@ -69,17 +69,37 @@
                 margin-bottom: 10px;
                 padding: 16px;
                 border-radius: 10px;
-                font-size: 18px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
+                flex-wrap: wrap;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
             }
 
+            .title {
+                font-size: 16px;
+                font-weight: bold;
+            }
+
+            .meta {
+                font-size: 13px;
+            }
+
             .left {
                 display: flex;
-                align-items: center;
+                flex-direction: column;
+                flex: 1;
+                align-items: flex-start;
+                gap: 6px;
+                min-width: 0;
+            }
+
+            .left div {
+                word-break: break-word;
+            }
+
+            .left > div:last-child {
+                line-height: 1;
             }
 
             button {
@@ -90,8 +110,20 @@
                 margin-left: 10px;
             }
 
+            .day-badge {
+                font-size: 10px !important;
+                padding: 1px 4px !important;
+                border-radius: 999px;
+                background: #eee;
+
+                display: inline-block;
+                line-height: 1;
+                white-space: nowrap;
+            }
+
             .delete {
                 background: #ffdddd;
+                flex-shrink: 0;
             }
 
             .add-row {
@@ -123,6 +155,14 @@
                     width: auto;
                 }
             }
+
+            @media (max-width: 480px) {
+                .left span {
+                    font-size: 11px;
+                    padding: 1px 4px;
+                }
+            }
+
         </style>
     </head>
 
@@ -146,6 +186,24 @@
         </div>
         <div class="section">
             <h2>Task Manager</h2>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <select id="dayFilter">
+                    <option value="">All Days</option>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                </select>
+
+                <select id="sortMode">
+                    <option value="name">Sort: Name</option>
+                    <option value="difficulty">Sort: Difficulty</option>
+                    <option value="interval">Sort: Frequency</option>
+                </select>
+            </div>
             <ul id="taskList"></ul>
 
             <div class="add-row">
@@ -156,6 +214,7 @@
                 <button onclick="addTask()">Add</button>
             </div>
         </div>
+
         <script>
         const API = "https://api.lillywhite.dev";
 
@@ -187,21 +246,90 @@
             return btn;
         }
 
+        const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        function formatDays(days) {
+            if (!days || days.length === 0) return "Any";
+
+            return days
+                .map(d => DAY_NAMES[d] ?? "?")
+                .join(", ");
+        }
+
+        function createDayBadges(days) {
+            const container = document.createElement("div"); // 👈 change to div
+
+            container.style.display = "flex";
+            container.style.flexWrap = "wrap";
+            container.style.gap = "4px";
+            container.style.alignItems = "center";
+            container.style.maxWidth = "100%";
+
+            if (!days || days.length === 0) {
+                container.innerText = "Any";
+                return container;
+            }
+
+            days.forEach(d => {
+                const span = document.createElement("span");
+                span.innerText = DAY_NAMES[d];
+                span.className = "day-badge";
+
+                container.appendChild(span);
+            });
+
+            return container;
+        }
+
         function renderTasks(tasks, uuid) {
             const list = document.getElementById("taskList");
             list.innerHTML = "";
 
-            tasks.forEach((task, index) => {
+            const selectedDay = document.getElementById("dayFilter")?.value;
+            const sortMode = document.getElementById("sortMode")?.value;
+
+            let filtered = [...tasks];
+
+            if (selectedDay !== "") {
+                const day = parseInt(selectedDay);
+
+                filtered = filtered.filter(task => {
+                    if (!task.allowed_days) return true; // "Any day"
+                    return task.allowed_days.includes(day);
+                });
+            }
+
+            filtered.sort((a, b) => {
+                if (sortMode === "difficulty") {
+                    return (b.difficulty ?? 1) - (a.difficulty ?? 1);
+                }
+                if (sortMode === "interval") {
+                    return (a.every_x_days ?? 1) - (b.every_x_days ?? 1);
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            filtered.forEach((task, index) => {
                 const li = document.createElement("li");
 
                 const left = document.createElement("div");
                 left.className = "left";
 
-                const text = document.createElement("span");
-                text.innerText =
-                    `${task.name} (d:${task.difficulty}, every:${task.every_x_days}, days:${task.allowed_days?.join(",")})`;
+                const title = document.createElement("div");
+                title.innerText = task.name;
+                title.style.fontWeight = "bold";
 
-                left.appendChild(text);
+                const meta = document.createElement("div");
+                meta.style.fontSize = "14px";
+                meta.style.opacity = "0.8";
+                meta.innerText = `Difficulty ${task.difficulty ?? 1} • Every ${task.every_x_days ?? 1} day(s)`;
+
+                left.appendChild(title);
+                left.appendChild(meta);
+
+                const badges = createDayBadges(task.allowed_days);
+                badges.title = formatDays(task.allowed_days);
+
+                left.appendChild(badges);
 
                 const del = createDeleteButton(async () => {
                     await fetch(`${API}/admin/tasks/delete`, {
@@ -355,6 +483,12 @@
                 console.error(err);
             }
         }
+
+        document.addEventListener("change", (e) => {
+            if (e.target.id === "dayFilter" || e.target.id === "sortMode") {
+                loadAdmin();
+            }
+        });
 
         loadAdmin();
         </script>
