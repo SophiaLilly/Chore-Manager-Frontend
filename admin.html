@@ -478,7 +478,7 @@
             setupNav();
 
             try {
-                const verification = await get(`${API}/admin/verify?uuid={uuid}`);
+                const verification = await get(`${API}/admin/verify?uuid=${uuid}`);
                 if (!verification.is_admin) {
                     status.textContent = "Access denied.";
                     return;
@@ -486,8 +486,8 @@
 
                 status.textContent = `Admin access granted (${verification.user})`;
 
-                const tasksData = await get(`${API}/admin/tasks?uuid={uuid}`);
-                const todoData = await get(`${API}/admin/todo?uuid={uuid}`);
+                const tasksData = await get(`${API}/admin/tasks?uuid=${uuid}`);
+                const todoData = await get(`${API}/admin/todo?uuid=${uuid}`);
 
                 renderTasks(tasksData.tasks || []);
                 renderTodo(todoData.items || []);
