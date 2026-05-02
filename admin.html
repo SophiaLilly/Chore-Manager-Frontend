@@ -194,6 +194,7 @@
         let uuid = "";
 
         const $ = id => document.getElementById(id);
+        const get = url => fetch(url).then(r => r.json());
         const post = (url, body) => fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -477,12 +478,12 @@
 
             try {
                 const [verifyRes, taskRes, todoRes] = await Promise.all([
-                    post(`${API}/admin/verify`, { uuid }),
-                    post(`${API}/admin/tasks`, { uuid }),
-                    post(`${API}/admin/todo`, { uuid })
+                    get(`${API}/admin/verify?uuid=${uuid}`),
+                    get(`${API}/admin/tasks?uuid=${uuid}`),
+                    get(`${API}/admin/todo?uuid=${uuid}`)
                 ]);
 
-                const verification = await verifyRes.json();
+                const verification = verifyRes;
                 if (!verification.is_admin) {
                     status.textContent = "Access denied.";
                     return;
@@ -490,8 +491,8 @@
 
                 status.textContent = `Admin access granted (${verification.user})`;
 
-                const tasksData = await tasksRes.json();
-                const todoData = await todoRes.json();
+                const tasksData = tasksRes;
+                const todoData = todoRes;
 
                 renderTasks(tasksData.tasks, uuid);
                 renderTodo(todoData.items, uuid);
