@@ -352,11 +352,14 @@
                         await loadAdmin();
                     });
 
-                    // 👉 click to edit (but ignore delete button)
                     li.onclick = (e) => {
-                        if (e.target.tagName === "BUTTON") return;
+                        if (editing) return;
+                        if (e.target.closest("input, label, button")) return;
+
                         editing = true;
-                        renderEdit();
+                        setTimeout(() => {
+                            renderEdit();
+                        }, 0);
                     };
 
                     li.appendChild(left);
@@ -368,6 +371,37 @@
 
                     const left = document.createElement("div");
                     left.className = "left";
+
+                    function makeField(labelText, input) {
+                        const wrapper = document.createElement("div");
+                        wrapper.style.display = "flex";
+                        wrapper.style.flexDirection = "column";
+                        wrapper.style.gap = "4px";
+                        wrapper.style.width = "100%";
+                        wrapper.style.padding = "6px 0";
+                        wrapper.style.borderBottom = "1px solid #eee";
+
+                        const label = document.createElement("label");
+                        label.innerText = labelText;
+
+                        label.style.fontSize = "12px";
+                        label.style.fontWeight = "600";
+                        label.style.opacity = "0.85";
+                        label.style.marginLeft = "2px";
+
+                        // accessibility (optional but good)
+                        if (!input.id) {
+                            input.id = `${index}-${labelText.toLowerCase().replace(/\s+/g, "-")}`;
+                        }
+                        label.htmlFor = input.id;
+
+                        input.style.width = "100%";
+
+                        wrapper.appendChild(label);
+                        wrapper.appendChild(input);
+
+                        return wrapper;
+                    }
 
                     const nameInput = document.createElement("input");
                     nameInput.value = task.name;
@@ -384,10 +418,10 @@
                     daysInput.placeholder = "0,1,2";
                     daysInput.value = task.allowed_days ? task.allowed_days.join(",") : "";
 
-                    left.appendChild(nameInput);
-                    left.appendChild(diffInput);
-                    left.appendChild(intervalInput);
-                    left.appendChild(daysInput);
+                    left.appendChild(makeField("Task name", nameInput));
+                    left.appendChild(makeField("Difficulty", diffInput));
+                    left.appendChild(makeField("Every X days", intervalInput));
+                    left.appendChild(makeField("Allowed days (0–6)", daysInput));
 
                     const save = document.createElement("button");
                     save.innerText = "Save";
@@ -426,6 +460,7 @@
                     li.appendChild(left);
                     li.appendChild(save);
                     li.appendChild(cancel);
+
                 }
 
                 renderView();
