@@ -7,24 +7,20 @@
         <meta http-equiv="Pragma" content="no-cache">
         <meta http-equiv="Expires" content="0">
         <style>
+            * { box-sizing: border-box; }
 
             body {
                 font-family: system-ui, sans-serif;
                 margin: 20px;
                 background: #f5f5f5;
             }
-
-            h2 {
-                margin-top: 0;
-            }
+            h2 { margin-top: 0; }
 
             #status {
                 text-align: center;
                 margin-bottom: 20px;
                 font-size: 18px;
             }
-
-            /* NAVBAR (same as index.html) */
             #navbar {
                 position: sticky;
                 top: 0;
@@ -43,27 +39,19 @@
                 font-weight: bold;
                 font-size: 18px;
             }
-
             .nav-right a {
                 margin-left: 15px;
                 text-decoration: none;
                 color: #333;
                 font-size: 16px;
             }
-
-            .nav-right a:hover {
-                text-decoration: underline;
-            }
-
-            .section {
-                margin-bottom: 20px;
-            }
+            .nav-right a:hover { text-decoration: underline; }
+            .section { margin-bottom: 20px; }
 
             ul {
                 list-style: none;
                 padding: 0;
             }
-
             li {
                 background: white;
                 margin-bottom: 10px;
@@ -80,28 +68,16 @@
                 font-size: 16px;
                 font-weight: bold;
             }
-
-            .meta {
-                font-size: 13px;
-            }
-
+            .meta { font-size: 13px; }
             .left {
                 display: flex;
                 flex-direction: column;
                 flex: 1;
-                align-items: flex-start;
                 gap: 6px;
                 min-width: 0;
             }
-
-            .left div {
-                word-break: break-word;
-            }
-
-            .left > div:last-child {
-                line-height: 1;
-            }
-
+            .left div { word-break: break-word; }
+            .left > div:last-child { line-height: 1; }
             .left input {
                 width: 100%;
                 padding: 4px;
@@ -126,24 +102,17 @@
                 line-height: 1;
                 white-space: nowrap;
             }
-
-            .delete {
-                background: #ffdddd;
-                flex-shrink: 0;
-            }
-
+            .delete { background: #ffdddd; }
             .add-row {
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
                 margin-top: 10px;
             }
-
             .add-row input {
                 width: 100%;
                 flex: none;
             }
-
             .add-row button {
                 width: 100%;
             }
@@ -161,14 +130,12 @@
                     width: auto;
                 }
             }
-
             @media (max-width: 480px) {
                 .left span {
                     font-size: 11px;
                     padding: 1px 4px;
                 }
             }
-
         </style>
     </head>
 
@@ -181,15 +148,16 @@
             </div>
         </div>
         <div id="status">Loading...</div>
+
         <div class="section">
             <h2>Shared To-Do List</h2>
             <ul id="todoList"></ul>
-
             <div class="add-row">
                 <label for="todoInput"></label><input id="todoInput" placeholder="New task..." />
                 <button onclick="addTodo()">Add</button>
             </div>
         </div>
+
         <div class="section">
             <h2>Task Manager</h2>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -203,15 +171,14 @@
                     <option value="5">Saturday</option>
                     <option value="6">Sunday</option>
                 </select>
-
                 <select id="sortMode">
                     <option value="name">Sort: Name</option>
                     <option value="difficulty">Sort: Difficulty</option>
                     <option value="interval">Sort: Frequency</option>
                 </select>
             </div>
-            <ul id="taskList"></ul>
 
+            <ul id="taskList"></ul>
             <div class="add-row">
                 <input id="taskName" placeholder="Task name" />
                 <input id="taskDifficulty" type="number" placeholder="Difficulty" />
@@ -223,10 +190,19 @@
 
         <script>
         const API = "https://api.lillywhite.dev";
+        const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        let uuid = "";
+
+        const $ = id => document.getElementById(id);
+        const post = (url, body) => fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
 
         function setupNav(uuid) {
-            document.getElementById("homeLink").href = `index.html#${uuid}`;
-            document.getElementById("adminLink").href = `admin.html#${uuid}`;
+            $("homeLink").href = `index.html#${uuid}`;
+            $("adminLink").href = `admin.html#${uuid}`;
         }
 
         async function verifyAdmin(uuid) {
@@ -252,7 +228,6 @@
             return btn;
         }
 
-        const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         function formatDays(days) {
             if (!days || days.length === 0) return "Any";
 
