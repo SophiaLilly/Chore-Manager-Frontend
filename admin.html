@@ -200,7 +200,7 @@
             body: JSON.stringify(body)
         });
 
-        function setupNav(uuid) {
+        function setupNav() {
             $("homeLink").href = `index.html#${uuid}`;
             $("adminLink").href = `admin.html#${uuid}`;
         }
@@ -610,32 +610,35 @@
             const status = $("status");
 
             if (!uuid) {
-                status.innerText = "Missing UUID";
+                status.textContent = "Missing UUID";
                 return;
             }
 
-            setupNav(uuid);
+            setupNav();
 
             try {
-                const verification = await verifyAdmin(uuid);
-        
+                const [verifyRes, taskRes, todoRes] = await Promise.all([
+                    post(`${API}/admin/verify`, { uuid }),
+                    post(`${API}/admin/tasks`, { uuid }),
+                    post(`${API}/admin/todo`, { uuid })
+                ]);
+
+                const verification = await verifyRes.json();
                 if (!verification.is_admin) {
-                    status.innerText = "Access denied.";
+                    status.textContent = "Access denied.";
                     return;
                 }
 
-                status.innerText = `Admin access granted (${verification.user})`;
+                status.textContent = `Admin access granted (${verification.user})`;
 
-                const [taskData, todoData] = await Promise.all([
-                    fetchTasks(uuid),
-                    fetchTodo(uuid)
-                ]);
+                const tasksData = await tasksRes.json();
+                const todoData = await todoRes.json();
 
-                renderTasks(taskData.tasks, uuid);
+                renderTasks(tasksData.tasks, uuid);
                 renderTodo(todoData.items, uuid);
 
             } catch (err) {
-                status.innerText = "Error loading admin data.";
+                status.textContent = "Error loading admin data.";
                 console.error(err);
             }
         }
