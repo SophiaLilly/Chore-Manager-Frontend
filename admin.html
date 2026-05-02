@@ -205,6 +205,47 @@
             $("adminLink").href = `admin.html#${uuid}`;
         }
 
+        function formatDays(days) {
+            if (!days?.length) return "Any";
+            return days
+                .map(d => DAY_NAMES[d] ?? "?")
+                .join(", ");
+        }
+
+        function createDayBadges(days) {
+            const div = document.createElement("div");
+
+            div.style.display = "flex";
+            div.style.flexWrap = "wrap";
+            div.style.gap = "4px";
+            div.style.alignItems = "center";
+            div.style.maxWidth = "100%";
+
+            if (!days?.length) {
+                div.innerText = "Any";
+                return div;
+            }
+
+            days.forEach(d => {
+                const span = document.createElement("span");
+
+                span.className = "day-badge";
+                span.textContent = DAY_NAMES[d];
+                span.title = formatDays(days);
+
+                div.appendChild(span);
+            });
+            return div;
+        }
+
+        function createDeleteButton(onClick) {
+            const btn = document.createElement("button");
+            btn.innerText = "X";
+            btn.className = "delete";
+            btn.onclick = onClick;
+            return btn;
+        }
+
         async function verifyAdmin(uuid) {
             const res = await fetch(`${API}/admin/verify?uuid=${uuid}`);
             return res.json();
@@ -220,46 +261,11 @@
             return res.json();
         }
 
-        function createDeleteButton(onClick) {
-            const btn = document.createElement("button");
-            btn.innerText = "X";
-            btn.className = "delete";
-            btn.onclick = onClick;
-            return btn;
-        }
 
-        function formatDays(days) {
-            if (!days || days.length === 0) return "Any";
 
-            return days
-                .map(d => DAY_NAMES[d] ?? "?")
-                .join(", ");
-        }
 
-        function createDayBadges(days) {
-            const container = document.createElement("div"); // 👈 change to div
 
-            container.style.display = "flex";
-            container.style.flexWrap = "wrap";
-            container.style.gap = "4px";
-            container.style.alignItems = "center";
-            container.style.maxWidth = "100%";
 
-            if (!days || days.length === 0) {
-                container.innerText = "Any";
-                return container;
-            }
-
-            days.forEach(d => {
-                const span = document.createElement("span");
-                span.innerText = DAY_NAMES[d];
-                span.className = "day-badge";
-
-                container.appendChild(span);
-            });
-
-            return container;
-        }
 
         function renderTasks(tasks, uuid) {
             const list = document.getElementById("taskList");
@@ -600,8 +606,8 @@
         }
 
         async function loadAdmin() {
-            const uuid = window.location.hash.substring(1);
-            const status = document.getElementById("status");
+            uuid = location.hash.substring(1);
+            const status = $("status");
 
             if (!uuid) {
                 status.innerText = "Missing UUID";
