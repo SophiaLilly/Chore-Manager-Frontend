@@ -477,13 +477,7 @@
             setupNav();
 
             try {
-                const [verifyRes, taskRes, todoRes] = await Promise.all([
-                    get(`${API}/admin/verify?uuid=${uuid}`),
-                    get(`${API}/admin/tasks?uuid=${uuid}`),
-                    get(`${API}/admin/todo?uuid=${uuid}`)
-                ]);
-
-                const verification = verifyRes;
+                const verification = await get(`${API}/admin/verify?uuid={uuid}`);
                 if (!verification.is_admin) {
                     status.textContent = "Access denied.";
                     return;
@@ -491,11 +485,11 @@
 
                 status.textContent = `Admin access granted (${verification.user})`;
 
-                const tasksData = tasksRes;
-                const todoData = todoRes;
+                const tasksData = await get(`${API}/admin/tasks?uuid={uuid}`);
+                const todoData = await get(`${API}/admin/todo?uuid={uuid}`);
 
-                renderTasks(tasksData.tasks, uuid);
-                renderTodo(todoData.items, uuid);
+                renderTasks(tasksData.tasks || []);
+                renderTodo(todoData.items || []);
 
             } catch (err) {
                 status.textContent = "Error loading admin data.";
