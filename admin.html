@@ -444,26 +444,59 @@
                     save.innerText = "Save";
                     save.style.background = "#ddffdd";
 
-                    save.onclick = async () => {
-                        await fetch(`${API}/admin/tasks/update`, {
-                            method: "POST",
-                            headers: {"Content-Type": "application/json"},
-                            body: JSON.stringify({
-                                uuid,
-                                index,
-                                task: {
-                                    name: nameInput.value.trim(),
-                                    difficulty: parseInt(diffInput.value) || 1,
-                                    every_x_days: parseInt(intervalInput.value) || 1,
-                                    allowed_days: daysInput.value
-                                        ? daysInput.value.split(",").map(d => parseInt(d.trim()))
-                                        : null,
-                                    last_added: task.last_added ?? null
-                                }
-                            })
-                        });
+                    const statusMsg = document.createElement("div");
+                    statusMsg.style.fontSize = "12px";
+                    statusMsg.style.marginTop = "8px";
+                    statusMsg.style.color = "#666";
 
-                        await loadAdmin();
+                    save.onclick = async () => {
+                        save.disabled = true;
+                        save.innerText = "Saving...";
+                        statusMsg.innerText = "";
+                        statusMsg.style.color = "#666";
+
+                        try {
+                            const allowedDays = daysInput.value
+                                ? daysInput.value.split(",").map(d => {
+                                    const n = parseInt(d.trim());
+                                    return isNaN(n) ? null : n;
+                                }).filter(n => n !== null)
+                                : null;
+
+                            const res = await fetch(`${API}/admin/tasks/update`, {
+                                method: "POST",
+                                headers: {"Content-Type": "application/json"},
+                                body: JSON.stringify({
+                                    uuid,
+                                    index,
+                                    task: {
+                                        name: nameInput.value.trim(),
+                                        difficulty: parseInt(diffInput.value) || 1,
+                                        every_x_days: parseInt(intervalInput.value) || 1,
+                                        allowed_days: allowedDays.length ? allowedDays : null,
+                                        last_added: task.last_added ?? null
+                                    }
+                                })
+                            });
+
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                                statusMsg.innerText = `Error: ${data.detail || "Save failed"}`;
+                                statusMsg.style.color = "#cc0000";
+                                save.disabled = false;
+                                save.innerText = "Save";
+                                return;
+                            }
+
+                            statusMsg.innerText = "Saved!";
+                            statusMsg.style.color = "#00aa00";
+                            await loadAdmin();
+                        } catch (err) {
+                            statusMsg.innerText = "Network error";
+                            statusMsg.style.color = "#cc0000";
+                            save.disabled = false;
+                            save.innerText = "Save";
+                        }
                     };
 
                     const cancel = document.createElement("button");
@@ -477,6 +510,7 @@
                     li.appendChild(left);
                     li.appendChild(save);
                     li.appendChild(cancel);
+                    li.appendChild(statusMsg);
 
                 }
 
