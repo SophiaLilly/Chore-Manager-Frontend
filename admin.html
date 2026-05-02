@@ -292,7 +292,7 @@
                         await loadAdmin();
                     });
 
-                    li.addEventListener("touchend", handleTap(300, renderEdit));
+                    setupTap(li, renderEdit);
                     li.onclick = e => { if (!e.target.closest("button,input")) renderEdit(); };
 
                     li.append(left, del);
@@ -446,23 +446,24 @@
             await loadAdmin();
         }
 
-        function handleTap(maxDuration, callback) {
+        function setupTap(li, callback) {
             let startY = 0, startTime = 0, moved = false;
-            return {
-                handleEvent(e) {
-                    startY = e.changedTouches?.[0]?.clientY ?? 0;
-                    startTime = Date.now();
-                    moved = false;
-                },
-                _move(e) {
-                    if (Math.abs((e.changedTouches?.[0]?.clientY ?? 0) - startY) > 10) moved = true;
-                },
-                _end(e) {
-                    if (!moved && Date.now() - startTime < maxDuration && !e.target.closest("input,button")) {
-                        callback();
-                    }
+
+            li.addEventListener("touchstart", e => {
+                startY = e.touches[0].clientY;
+                startTime = Date.now();
+                moved = false;
+            }, { passive: true });
+
+            li.addEventListener("touchmove", e => {
+                if (Math.abs(e.touches[0].clientY - startY) > 10) moved = true;
+            }, { passive: true });
+
+            li.addEventListener("touchend", e => {
+                if (!moved && Date.now() - startTime < 300 && !e.target.closest("button,input")) {
+                    callback();
                 }
-            };
+            });
         }
 
         async function loadAdmin() {
