@@ -218,6 +218,7 @@
                 choresDiv.innerHTML = "";
 
                 const allTasks = data.all_tasks;
+                const allUsers = data.all_users;
 
                 if (!allTasks || Object.keys(allTasks).length === 0) {
                     choresDiv.innerText = "No chores for today!";
@@ -230,12 +231,22 @@
                     const section = document.createElement("div");
 
                     const header = document.createElement("h2");
-                    header.innerText = person;
                     header.style.marginTop = "20px";
+
+                    const userData = Object.values(allUsers).find(
+                        u => u.display_name === person
+                    );
+
+                    const streak = userData?.current_streak ?? 0;
+                    const exp = userData?.total_exp ?? 0;
+
+                    header.innerText = `${person} 🔥 ${streak} ⭐ ${exp}`;
+
                     if (person === data.user) {
                         header.style.color = "#2c7be5";
                         header.innerText += " (You)";
                     }
+
                     section.appendChild(header);
 
                     const ul = document.createElement("ul");
@@ -284,6 +295,7 @@
 
                 const ownTasks = allTasks[data.user] || [];
                 const allCompleted = ownTasks.length > 0 && ownTasks.every(t => t.completed);
+
                 updateCompletionMessage(allCompleted);
             }
 
