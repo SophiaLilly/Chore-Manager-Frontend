@@ -326,13 +326,17 @@
                 const uuid = window.location.hash.substring(1);
                 const statusDiv = document.getElementById("status");
 
+                currentUuid = uuid;
+                currentStatusDiv = statusDiv;
+
                 if (!uuid) {
                     statusDiv.innerText = "Missing user UUID in URL.";
                     return;
                 }
 
                 try {
-                    const data = await fetchTodayData(uuid);
+                    currentData = await fetchTodayData(uuid);
+                    const data = currentData;
 
                     setupNav(uuid, data.is_admin);
 
@@ -345,6 +349,29 @@
                 } catch (error) {
                     statusDiv.innerText = "Error fetching user data.";
                     console.error(error);
+                }
+            }
+
+            async function refreshDataSilently() {
+                if (!currentUuid || !currentData) return;
+
+                try {
+                    const newData = await fetchTodayData(currentUuid);
+
+                    currentData = newData;
+
+                    updateStatus(
+                        currentStatusDiv,
+                        newData.user,
+                        newData.streak.current,
+                        newData.streak.best,
+                        newData.total_exp
+                    );
+
+                    renderTasks(newData, currentUuid, currentStatusDiv);
+
+                } catch (error) {
+                    console.error("Silent refresh failed:", error);
                 }
             }
 
@@ -410,7 +437,12 @@
                 }, 2000);
             }
 
+            let currentData = null;
+            let currentUuid = null;
+            let currentStatusDiv = null;
+
             loadUser();
+            setInterval(refreshDataSilently, 30000);
         </script>
     </body>
 </html>
