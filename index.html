@@ -183,6 +183,25 @@
                     const streakData = await streakRes.json();
 
                     data.total_exp = toggleData.total_exp ?? data.total_exp ?? 0;
+                    const currentUserData = Object.values(data.all_users).find(
+                        u => u.display_name === data.user
+                    );
+
+                    if (currentUserData) {
+                        currentUserData.total_exp = data.total_exp;
+                        currentUserData.current_streak = streakData.current_streak;
+
+                        const header = document.getElementById(`header-${data.user}`);
+
+                        if (header) {
+                            updateUserHeader(
+                                header,
+                                data.user,
+                                currentUserData,
+                                true
+                            );
+                        }
+                    }
                     updateStatus(
                         statusDiv,
                         data.user,
@@ -197,7 +216,6 @@
                         showExpDeductionNotification(toggleData.exp_deducted);
                     }
 
-                    // Update checkbox state based on server response
                     checkbox.checked = toggleData.completed;
                     updateLabelStyle(label, checkbox.checked);
 
@@ -205,11 +223,23 @@
                     updateCompletionMessage(allCompleted);
                 } catch (error) {
                     console.error("Error toggling task:", error);
-                    // Revert checkbox state on error
                     checkbox.checked = !checkbox.checked;
                     updateLabelStyle(label, checkbox.checked);
+
                 } finally {
                     checkbox.disabled = false;
+                }
+            }
+
+            function updateUserHeader(headerElement, person, userData, isCurrentUser) {
+                const streak = userData?.current_streak ?? 0;
+                const exp = userData?.total_exp ?? 0;
+
+                headerElement.innerText = `${person} 🔥 ${streak} ⭐ ${exp}`;
+
+                if (isCurrentUser) {
+                    headerElement.style.color = "#2c7be5";
+                    headerElement.innerText += " (You)";
                 }
             }
 
@@ -232,20 +262,13 @@
 
                     const header = document.createElement("h2");
                     header.style.marginTop = "20px";
+                    header.id = `header-${person}`;
 
                     const userData = Object.values(allUsers).find(
                         u => u.display_name === person
                     );
 
-                    const streak = userData?.current_streak ?? 0;
-                    const exp = userData?.total_exp ?? 0;
-
-                    header.innerText = `${person} 🔥 ${streak} ⭐ ${exp}`;
-
-                    if (person === data.user) {
-                        header.style.color = "#2c7be5";
-                        header.innerText += " (You)";
-                    }
+                    updateUserHeader(header, person, userData, person === data.user);
 
                     section.appendChild(header);
 
