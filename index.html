@@ -41,6 +41,11 @@
             border-radius: 10px;
             font-size: 18px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.15s ease;
+        }
+
+        li:active {
+            transform: scale(0.98);
         }
 
         /* Make it feel nicer on wider screens too */
@@ -80,6 +85,12 @@
         .nav-right a:hover {
             text-decoration: underline;
         }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
         </style>
         <link rel="icon" href="./favicon.ico">
         <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -112,8 +123,8 @@
                 document.body.insertBefore(doneMsg, choresDiv);
             }
 
-            function updateStatus(statusDiv, user, current, best) {
-                statusDiv.innerText = `Hello ${user} | 🔥 ${current} (Best: ${best})`;
+            function updateStatus(statusDiv, user, current, best, totalExp) {
+                statusDiv.innerText = `Hello ${user} | 🔥 ${current} (Best: ${best}) | ⭐ ${totalExp} EXP`;
             }
 
             async function fetchTodayData(uuid) {
@@ -147,36 +158,59 @@
             function updateLabelStyle(label, checked) {
                 label.style.textDecoration = checked ? "line-through" : "none";
                 label.style.opacity = checked ? "0.6" : "1";
+                label.style.transition = "all 0.2s ease";
             }
 
             async function handleToggle({ checkbox, label, chore, data, uuid, checkboxes, statusDiv }) {
                 checkbox.disabled = true;
 
-                await fetch("https://api.lillywhite.dev/toggle", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        person: data.user,
-                        index: chore.index
-                    })
-                });
+                try {
+                    const toggleRes = await fetch("https://api.lillywhite.dev/toggle", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            person: data.user,
+                            index: chore.index
+                        })
+                    });
+                    const toggleData = await toggleRes.json();
 
-                const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ uuid })
-                });
+                    const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ uuid })
+                    });
+                    const streakData = await streakRes.json();
 
-                const streakData = await streakRes.json();
+                    data.total_exp = toggleData.total_exp ?? data.total_exp ?? 0;
+                    updateStatus(
+                        statusDiv,
+                        data.user,
+                        streakData.current_streak,
+                        streakData.best_streak,
+                        data.total_exp
+                    );
 
-                updateStatus(statusDiv, data.user, streakData.current_streak, streakData.best_streak);
+                    if (toggleData.exp_gained) {
+                        showExpNotification(toggleData.exp_gained);
+                    } else if (toggleData.exp_deducted) {
+                        showExpDeductionNotification(toggleData.exp_deducted);
+                    }
 
-                updateLabelStyle(label, checkbox.checked);
+                    // Update checkbox state based on server response
+                    checkbox.checked = toggleData.completed;
+                    updateLabelStyle(label, checkbox.checked);
 
-                const allCompleted = checkboxes.every(cb => cb.checked);
-                updateCompletionMessage(allCompleted);
-
-                checkbox.disabled = false;
+                    const allCompleted = checkboxes.every(cb => cb.checked);
+                    updateCompletionMessage(allCompleted);
+                } catch (error) {
+                    console.error("Error toggling task:", error);
+                    // Revert checkbox state on error
+                    checkbox.checked = !checkbox.checked;
+                    updateLabelStyle(label, checkbox.checked);
+                } finally {
+                    checkbox.disabled = false;
+                }
             }
 
             function renderTasks(data, uuid, statusDiv) {
@@ -267,7 +301,7 @@
 
                     setupNav(uuid, data.is_admin);
 
-                    updateStatus(statusDiv, data.user, data.streak.current, data.streak.best);
+                    updateStatus(statusDiv, data.user, data.streak.current, data.streak.best, data.total_exp);
 
                     updateCompletionMessage(data.streak.all_tasks_completed_today);
 
@@ -289,6 +323,56 @@
                     adminLink.style.display = "inline";
                     adminLink.href = `admin.html#${uuid}`;
                 }
+            }
+
+            function showExpNotification(expGained) {
+                const notification = document.createElement("div");
+                notification.innerText = `⭐ +${expGained} EXP!`;
+                notification.style.pointerEvents = "none";
+                notification.style.position = "fixed";
+                notification.style.top = "50%";
+                notification.style.left = "50%";
+                notification.style.transform = "translate(-50%, -50%)";
+                notification.style.background = "#4CAF50";
+                notification.style.color = "white";
+                notification.style.padding = "16px 24px";
+                notification.style.borderRadius = "8px";
+                notification.style.fontSize = "18px";
+                notification.style.fontWeight = "bold";
+                notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+                notification.style.zIndex = "10000";
+                notification.style.animation = "fadeInOut 2s ease-in-out";
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.remove();
+                }, 2000);
+            }
+
+            function showExpDeductionNotification(expDeducted) {
+                const notification = document.createElement("div");
+                notification.innerText = `⚠️ -${expDeducted} EXP!`;
+                notification.style.pointerEvents = "none";
+                notification.style.position = "fixed";
+                notification.style.top = "60%";
+                notification.style.left = "50%";
+                notification.style.transform = "translate(-50%, -50%)";
+                notification.style.background = "#f44336";
+                notification.style.color = "white";
+                notification.style.padding = "16px 24px";
+                notification.style.borderRadius = "8px";
+                notification.style.fontSize = "18px";
+                notification.style.fontWeight = "bold";
+                notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+                notification.style.zIndex = "10000";
+                notification.style.animation = "fadeInOut 2s ease-in-out";
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.remove();
+                }, 2000);
             }
 
             loadUser();
