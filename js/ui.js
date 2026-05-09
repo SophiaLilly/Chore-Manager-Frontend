@@ -1,3 +1,6 @@
+"use strict";
+
+
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 

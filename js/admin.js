@@ -1,3 +1,6 @@
+"use strict";
+
+
 const dayFilter = $("dayFilter");
 const sortMode = $("sortMode");
 

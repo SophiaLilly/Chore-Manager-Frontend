@@ -1,3 +1,6 @@
+"use strict";
+
+
 const API = "https://api.lillywhite.dev";
 
 
