@@ -5,7 +5,7 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 
 function createDeleteButton(onClick) {
-    const btn = document.createElement("button");
+    const btn = create("button");
     btn.innerText = "X";
     btn.className = "delete";
     btn.onclick = onClick;
@@ -14,7 +14,7 @@ function createDeleteButton(onClick) {
 
 
 function createDayBadges(days) {
-    const div = document.createElement("div");
+    const div = create("div");
 
     div.style.display = "flex";
     div.style.flexWrap = "wrap";
@@ -28,7 +28,7 @@ function createDayBadges(days) {
     }
 
     days.forEach(d => {
-        const span = document.createElement("span");
+        const span = create("span");
 
         span.className = "day-badge";
         span.textContent = DAY_NAMES[d];

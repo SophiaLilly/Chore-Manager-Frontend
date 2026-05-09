@@ -7,7 +7,7 @@ function updateCompletionMessage(allCompleted) {
 
     if (!allCompleted) return;
 
-    const doneMsg = document.createElement("div");
+    const doneMsg = create("div");
     doneMsg.id = "doneMsg";
     doneMsg.innerText = "✅ All tasks completed today!";
     doneMsg.style.textAlign = "center";
@@ -25,8 +25,7 @@ function updateStatus(statusDiv, user, current, best, totalExp) {
 
 
 async function fetchTodayData(uuid) {
-    const res = await fetch(`https://api.lillywhite.dev/today?uuid=${uuid}`);
-    return res.json();
+    return get(`${API}/today?uuid=${uuid}`);
 }
 
 
@@ -41,20 +40,14 @@ async function handleToggle({ checkbox, label, chore, data, uuid, checkboxes, st
     checkbox.disabled = true;
 
     try {
-        const toggleRes = await fetch("https://api.lillywhite.dev/toggle", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                person: data.user,
-                index: chore.index
-            })
+        const toggleRes = await post(`${API}/toggle`, {
+            person: data.user,
+            index: chore.index
         });
         const toggleData = await toggleRes.json();
 
-        const streakRes = await fetch("https://api.lillywhite.dev/sync-streak", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ uuid })
+        const streakRes = await post(`${API}/sync-streak`, {
+            uuid
         });
         const streakData = await streakRes.json();
 
@@ -67,7 +60,7 @@ async function handleToggle({ checkbox, label, chore, data, uuid, checkboxes, st
             currentUserData.total_exp = data.total_exp;
             currentUserData.current_streak = streakData.current_streak;
 
-            const header = document.getElementById(`header-${data.user}`);
+            const header = $(`header-${data.user}`);
 
             if (header) {
                 updateUserHeader(
@@ -87,9 +80,9 @@ async function handleToggle({ checkbox, label, chore, data, uuid, checkboxes, st
         );
 
         if (toggleData.exp_gained) {
-            showExpNotification(toggleData.exp_gained);
+            showExpNotification(toggleData.exp_gained, true);
         } else if (toggleData.exp_deducted) {
-            showExpDeductionNotification(toggleData.exp_deducted);
+            showExpNotification(toggleData.exp_deducted, false);
         }
 
         checkbox.checked = toggleData.completed;
@@ -122,7 +115,7 @@ function updateUserHeader(headerElement, person, userData, isCurrentUser) {
 
 
 function renderTasks(data, uuid, statusDiv) {
-    const choresDiv = document.getElementById("chores");
+    const choresDiv = $("chores");
     choresDiv.innerHTML = "";
 
     const allTasks = data.all_tasks;
@@ -136,9 +129,9 @@ function renderTasks(data, uuid, statusDiv) {
     const checkboxes = [];
 
     Object.entries(allTasks).forEach(([person, tasks]) => {
-        const section = document.createElement("div");
+        const section = create("div");
 
-        const header = document.createElement("h2");
+        const header = create("h2");
         header.style.marginTop = "20px";
         header.id = `header-${person}`;
 
@@ -150,16 +143,16 @@ function renderTasks(data, uuid, statusDiv) {
 
         section.appendChild(header);
 
-        const ul = document.createElement("ul");
+        const ul = create("ul");
 
         tasks.forEach(chore => {
-            const li = document.createElement("li");
+            const li = create("li");
 
-            const checkbox = document.createElement("input");
+            const checkbox = create("input");
             checkbox.type = "checkbox";
             checkbox.checked = chore.completed;
 
-            const label = document.createElement("span");
+            const label = create("span");
             label.innerText = " " + chore.task;
 
             updateLabelStyle(label, checkbox.checked);
@@ -203,7 +196,7 @@ function renderTasks(data, uuid, statusDiv) {
 
 async function loadUser() {
     const uuid = window.location.hash.substring(1);
-    const statusDiv = document.getElementById("status");
+    const statusDiv = $("status");
 
     currentUuid = uuid;
     currentStatusDiv = statusDiv;
@@ -256,55 +249,16 @@ async function refreshDataSilently() {
 }
 
 
-function showExpNotification(expGained) {
-    const notification = document.createElement("div");
-    notification.innerText = `⭐ +${expGained} EXP!`;
-    notification.style.pointerEvents = "none";
-    notification.style.position = "fixed";
-    notification.style.top = "50%";
-    notification.style.left = "50%";
-    notification.style.transform = "translate(-50%, -50%)";
-    notification.style.background = "#4CAF50";
-    notification.style.color = "white";
-    notification.style.padding = "16px 24px";
-    notification.style.borderRadius = "8px";
-    notification.style.fontSize = "18px";
-    notification.style.fontWeight = "bold";
-    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
-    notification.style.zIndex = "10000";
-    notification.style.animation = "fadeInOut 2s ease-in-out";
+function showExpNotification(amount, isGain = true) {
+    const notification = create("div");
+    const icon = isGain ? "⭐" : "⚠️";
+    const sign = isGain ? "+" : "-";
+    notification.innerText = `${icon} ${sign}${amount} EXP!`;
+    notification.className = `exp-popup ${isGain ? "gained" : "deducted"}`;
 
     document.body.appendChild(notification);
 
-    setTimeout(() => {
-        notification.remove();
-    }, 2000);
-}
-
-
-function showExpDeductionNotification(expDeducted) {
-    const notification = document.createElement("div");
-    notification.innerText = `⚠️ -${expDeducted} EXP!`;
-    notification.style.pointerEvents = "none";
-    notification.style.position = "fixed";
-    notification.style.top = "60%";
-    notification.style.left = "50%";
-    notification.style.transform = "translate(-50%, -50%)";
-    notification.style.background = "#f44336";
-    notification.style.color = "white";
-    notification.style.padding = "16px 24px";
-    notification.style.borderRadius = "8px";
-    notification.style.fontSize = "18px";
-    notification.style.fontWeight = "bold";
-    notification.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
-    notification.style.zIndex = "10000";
-    notification.style.animation = "fadeInOut 2s ease-in-out";
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 2000);
+    setTimeout(() => notification.remove(), 2000);
 }
 
 

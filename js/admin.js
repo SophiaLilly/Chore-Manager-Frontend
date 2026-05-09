@@ -21,21 +21,21 @@ function renderTasks(tasks) {
         });
 
     filtered.forEach(task => {
-        const li = document.createElement("li");
+        const li = create("li");
         let editing = false;
 
-        const left = document.createElement("div");
+        const left = create("div");
         left.className = "left";
 
         function renderView() {
             left.innerHTML = "";
             li.innerHTML = "";
 
-            const title = document.createElement("div");
+            const title = create("div");
             title.className = "title";
             title.textContent = task.name;
 
-            const meta = document.createElement("div");
+            const meta = create("div");
             meta.className = "meta";
             meta.textContent = `Difficulty ${task.difficulty ?? 1} • Every ${task.every_x_days ?? 1} day(s)`;
 
@@ -63,9 +63,9 @@ function renderTasks(tasks) {
 
             const makeField = (label, input, value) => {
                 input.value = value ?? "";
-                const wrapper = document.createElement("div");
+                const wrapper = create("div");
                 wrapper.style.cssText = "display:flex;flex-direction:column;gap:4px;padding:6px 0;border-bottom:1px solid #eee;";
-                const lbl = document.createElement("label");
+                const lbl = create("label");
                 lbl.textContent = label;
                 lbl.style.cssText = "font-size:12px;font-weight:600;opacity:0.85;";
                 wrapper.append(lbl, input);
@@ -73,19 +73,19 @@ function renderTasks(tasks) {
             };
 
             left.append(
-                makeField("Task name", Object.assign(document.createElement("input"), { placeholder: "Task name" }), task.name),
-                makeField("Difficulty", Object.assign(document.createElement("input"), { type: "number" }), task.difficulty ?? 1),
-                makeField("Every X days", Object.assign(document.createElement("input"), { type: "number" }), task.every_x_days ?? 1),
-                makeField("Allowed days (0–6)", Object.assign(document.createElement("input"), { placeholder: "0,1,2" }), task.allowed_days?.join(",") || "")
+                makeField("Task name", Object.assign(create("input"), { placeholder: "Task name" }), task.name),
+                makeField("Difficulty", Object.assign(create("input"), { type: "number" }), task.difficulty ?? 1),
+                makeField("Every X days", Object.assign(create("input"), { type: "number" }), task.every_x_days ?? 1),
+                makeField("Allowed days (0–6)", Object.assign(create("input"), { placeholder: "0,1,2" }), task.allowed_days?.join(",") || "")
             );
 
-            const statusMsg = document.createElement("div");
+            const statusMsg = create("div");
             statusMsg.style.cssText = "font-size:12px;margin-top:8px;color:#666;grid-column:1/-1;";
 
-            const btnRow = document.createElement("div");
+            const btnRow = create("div");
             btnRow.style.cssText = "display:flex;gap:8px;grid-column:1/-1;";
 
-            const save = document.createElement("button");
+            const save = create("button");
             save.style.background = "#ddffdd";
             save.textContent = "Save";
             save.onclick = async () => {
@@ -94,7 +94,9 @@ function renderTasks(tasks) {
                 statusMsg.textContent = "";
 
                 const allowedDays = left.querySelectorAll("input")[3].value
-                    .split(",").map(d => +d.trim()).filter(n => !isNaN(n)) || null;
+                    .split(",")
+                    .map(d => +d.trim())
+                    .filter(n => !isNaN(n)) || null;
 
                 try {
                     const res = await post(`${API}/admin/tasks/update`, {
@@ -128,9 +130,12 @@ function renderTasks(tasks) {
                 }
             };
 
-            const cancel = document.createElement("button");
+            const cancel = create("button");
             cancel.textContent = "Cancel";
-            cancel.onclick = () => { editing = false; renderView(); };
+            cancel.onclick = () => {
+                editing = false;
+                renderView();
+            };
 
             btnRow.append(save, cancel);
             li.append(left, btnRow, statusMsg);
@@ -147,12 +152,12 @@ function renderTodo(items) {
     list.innerHTML = "";
 
     items.forEach(item => {
-        const li = document.createElement("li");
+        const li = create("li");
 
-        const left = document.createElement("div");
+        const left = create("div");
         left.className = "left";
 
-        const checkbox = document.createElement("input");
+        const checkbox = create("input");
         checkbox.type = "checkbox";
         checkbox.checked = item.completed;
         checkbox.onchange = async () => {
@@ -160,7 +165,7 @@ function renderTodo(items) {
             await loadAdmin();
         };
 
-        const span = document.createElement("span");
+        const span = create("span");
         span.textContent = " " + item.text;
 
         left.append(checkbox, span);

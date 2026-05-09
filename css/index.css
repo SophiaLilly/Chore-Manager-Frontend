@@ -6,3 +6,32 @@ li {
 li:active {
     transform: scale(0.98);
 }
+
+.exp-popup {
+    pointer-events: none;
+    position: fixed;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10000;
+
+    animation: fadeInOut 2s ease-in-out;
+}
+
+.exp-popup.gained {
+    background: #4CAF50;
+}
+
+.exp-popup.deducted {
+    background: #f44336;
+}

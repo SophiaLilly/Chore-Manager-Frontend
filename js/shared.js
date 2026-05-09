@@ -2,6 +2,7 @@
 
 
 const $ = id => document.getElementById(id);
+const create = tag => document.createElement(tag);
 
 
 function setupNav(uuid, isAdmin = false) {
