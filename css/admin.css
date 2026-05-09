@@ -1,0 +1,97 @@
+h2 {
+    margin-top: 0;
+}
+
+li {
+    flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.meta {
+    font-size: 13px;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+}
+
+.left div {
+    word-break: break-word;
+}
+
+.left > div:last-child {
+    line-height: 1;
+}
+
+.left input {
+    width: 100%;
+    padding: 4px;
+    font-size: 16px;
+}
+
+button {
+    margin-left: 10px;
+}
+
+.day-badge {
+    font-size: 10px !important;
+    padding: 1px 4px !important;
+    border-radius: 999px;
+    background: #eee;
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.delete {
+    background: #ffdddd;
+}
+
+.add-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.add-row input {
+    width: 100%;
+    flex: none;
+    font-size: 16px;
+}
+
+.add-row button {
+    width: 100%;
+}
+
+@media (min-width: 600px) {
+    .add-row {
+        flex-direction: row;
+    }
+
+    .add-row input {
+        flex: 1;
+    }
+
+    .add-row button {
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .left span {
+        font-size: 11px;
+        padding: 1px 4px;
+    }
+}
