@@ -1,21 +1,23 @@
 "use strict";
 
 
-function updateCompletionMessage(allCompleted) {
-    const existing = $("doneMsg");
-    if (existing) existing.remove();
-
-    if (!allCompleted) return;
-
-    const doneMsg = create("div");
-    doneMsg.id = "doneMsg";
-    doneMsg.innerText = "✅ All tasks completed today!";
-    doneMsg.style.textAlign = "center";
-    doneMsg.style.marginBottom = "10px";
-    doneMsg.style.fontWeight = "bold";
+const doneMsg = $("doneMsg") || (() => {
+    const el = create("div");
+    el.id = "doneMsg";
+    el.style.textAlign = "center";
+    el.style.marginBottom = "10px";
+    el.style.fontWeight = "bold";
 
     const choresDiv = $("chores");
-    document.body.insertBefore(doneMsg, choresDiv);
+    document.body.insertBefore(el, choresDiv);
+
+    return el;
+})();
+
+
+function updateCompletionMessage(allCompleted) {
+    if (!doneMsg) return;
+    doneMsg.innerText = allCompleted ? "✅ All tasks completed today!" : "";
 }
 
 
@@ -32,7 +34,6 @@ async function fetchTodayData(uuid) {
 function updateLabelStyle(label, checked) {
     label.style.textDecoration = checked ? "line-through" : "none";
     label.style.opacity = checked ? "0.6" : "1";
-    label.style.transition = "all 0.2s ease";
 }
 
 
@@ -154,6 +155,7 @@ function renderTasks(data, uuid, statusDiv) {
 
             const label = create("span");
             label.innerText = " " + chore.task;
+            label.style.transition = "all 0.2s ease";
 
             updateLabelStyle(label, checkbox.checked);
 
