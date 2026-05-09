@@ -1,0 +1,252 @@
+const dayFilter = $("dayFilter");
+const sortMode = $("sortMode");
+
+
+function renderTasks(tasks) {
+    const list = $("taskList");
+    list.innerHTML = "";
+
+
+
+    let filtered = tasks
+        .map((t, i) => ({ ...t, _idx: i }))
+        .filter(t => !dayFilter?.value || !t.allowed_days?.length || t.allowed_days.includes(+dayFilter?.value))
+        .sort((a, b) => {
+            if (sortMode?.value === "difficulty") return (b.difficulty ?? 1) - (a.difficulty ?? 1);
+            if (sortMode?.value === "interval") return (a.every_x_days ?? 1) - (b.every_x_days ?? 1);
+            return a.name.localeCompare(b.name);
+        });
+
+    filtered.forEach(task => {
+        const li = document.createElement("li");
+        let editing = false;
+
+        const left = document.createElement("div");
+        left.className = "left";
+
+        function renderView() {
+            left.innerHTML = "";
+            li.innerHTML = "";
+
+            const title = document.createElement("div");
+            title.className = "title";
+            title.textContent = task.name;
+
+            const meta = document.createElement("div");
+            meta.className = "meta";
+            meta.textContent = `Difficulty ${task.difficulty ?? 1} • Every ${task.every_x_days ?? 1} day(s)`;
+
+            const badges = createDayBadges(task.allowed_days);
+
+            left.append(title, meta, badges);
+
+            const del = createDeleteButton(async () => {
+                if (!confirm("Delete this task?")) return;
+                await post(`${API}/admin/tasks/delete`, { uuid, index: task._idx });
+                await loadAdmin();
+            });
+
+            setupTap(li, renderEdit);
+            li.onclick = e => { if (!e.target.closest("button,input")) renderEdit(); };
+
+            li.append(left, del);
+        }
+
+        function renderEdit() {
+            if (editing) return;
+            editing = true;
+            left.innerHTML = "";
+            li.innerHTML = "";
+
+            const makeField = (label, input, value) => {
+                input.value = value ?? "";
+                const wrapper = document.createElement("div");
+                wrapper.style.cssText = "display:flex;flex-direction:column;gap:4px;padding:6px 0;border-bottom:1px solid #eee;";
+                const lbl = document.createElement("label");
+                lbl.textContent = label;
+                lbl.style.cssText = "font-size:12px;font-weight:600;opacity:0.85;";
+                wrapper.append(lbl, input);
+                return wrapper;
+            };
+
+            left.append(
+                makeField("Task name", Object.assign(document.createElement("input"), { placeholder: "Task name" }), task.name),
+                makeField("Difficulty", Object.assign(document.createElement("input"), { type: "number" }), task.difficulty ?? 1),
+                makeField("Every X days", Object.assign(document.createElement("input"), { type: "number" }), task.every_x_days ?? 1),
+                makeField("Allowed days (0–6)", Object.assign(document.createElement("input"), { placeholder: "0,1,2" }), task.allowed_days?.join(",") || "")
+            );
+
+            const statusMsg = document.createElement("div");
+            statusMsg.style.cssText = "font-size:12px;margin-top:8px;color:#666;grid-column:1/-1;";
+
+            const btnRow = document.createElement("div");
+            btnRow.style.cssText = "display:flex;gap:8px;grid-column:1/-1;";
+
+            const save = document.createElement("button");
+            save.style.background = "#ddffdd";
+            save.textContent = "Save";
+            save.onclick = async () => {
+                save.disabled = true;
+                save.textContent = "Saving...";
+                statusMsg.textContent = "";
+
+                const allowedDays = left.querySelectorAll("input")[3].value
+                    .split(",").map(d => +d.trim()).filter(n => !isNaN(n)) || null;
+
+                try {
+                    const res = await post(`${API}/admin/tasks/update`, {
+                        uuid, index: task._idx,
+                        task: {
+                            name: left.querySelector("input").value.trim(),
+                            difficulty: +left.querySelectorAll("input")[1].value || 1,
+                            every_x_days: +left.querySelectorAll("input")[2].value || 1,
+                            allowed_days: allowedDays.length ? allowedDays : null,
+                            last_added: task.last_added
+                        }
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        statusMsg.textContent = `Error: ${data.detail || "Save failed"}`;
+                        statusMsg.style.color = "#c00";
+                        save.disabled = false;
+                        save.textContent = "Save";
+                        return;
+                    }
+
+                    statusMsg.textContent = "Saved!";
+                    statusMsg.style.color = "#0a0";
+                    await loadAdmin();
+                } catch {
+                    statusMsg.textContent = "Network error";
+                    statusMsg.style.color = "#c00";
+                    save.disabled = false;
+                    save.textContent = "Save";
+                }
+            };
+
+            const cancel = document.createElement("button");
+            cancel.textContent = "Cancel";
+            cancel.onclick = () => { editing = false; renderView(); };
+
+            btnRow.append(save, cancel);
+            li.append(left, btnRow, statusMsg);
+        }
+
+        renderView();
+        list.appendChild(li);
+    });
+}
+
+
+function renderTodo(items) {
+    const list = $("todoList");
+    list.innerHTML = "";
+
+    items.forEach(item => {
+        const li = document.createElement("li");
+
+        const left = document.createElement("div");
+        left.className = "left";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = item.completed;
+        checkbox.onchange = async () => {
+            await post(`${API}/admin/todo/toggle`, { uuid, index: item.index });
+            await loadAdmin();
+        };
+
+        const span = document.createElement("span");
+        span.textContent = " " + item.text;
+
+        left.append(checkbox, span);
+
+        const del = createDeleteButton(async () => {
+            if (!confirm("Delete this task?")) return;
+            await post(`${API}/admin/todo/delete`, { uuid, index: item.index });
+            await loadAdmin();
+        });
+
+        li.append(left, del);
+        list.appendChild(li);
+    });
+}
+
+
+async function addTask() {
+    const name = $("taskName");
+    if (!name.value.trim()) return;
+
+    const days = $("taskDays");
+    const difficulty = $("taskDifficulty");
+    const interval = $("taskInterval");
+
+    await post(`${API}/admin/tasks/add`, {
+        uuid,
+        task: {
+            name: name.value.trim(),
+            difficulty: +difficulty.value || 1,
+            every_x_days: +interval.value || 1,
+            allowed_days: days.value ? days.value
+                .split(",")
+                .map(d => +d.trim())
+                .filter(n => !isNaN(n)) : null,
+            last_added: null
+        }
+    });
+
+    ["taskName", "taskDifficulty", "taskInterval", "taskDays"].forEach(id => $(id).value = "");
+    await loadAdmin();
+}
+
+
+async function addTodo() {
+    const input = $("todoInput");
+    if (!input.value.trim()) return;
+
+    await post(`${API}/admin/todo/add`, { uuid, text: input.value.trim() });
+    input.value = "";
+    await loadAdmin();
+}
+
+
+async function loadAdmin() {
+    uuid = location.hash.substring(1);
+    const status = $("status");
+
+    if (!uuid) {
+        status.textContent = "Missing UUID";
+        return;
+    }
+
+    try {
+        const verification = await get(`${API}/admin/verify?uuid=${uuid}`);
+        if (!verification.is_admin) {
+            status.textContent = "Access denied.";
+            return;
+        }
+
+        setupNav(uuid, verification.is_admin);
+
+        status.textContent = `Admin access granted (${verification.user})`;
+
+        const tasksData = await get(`${API}/admin/tasks?uuid=${uuid}`);
+        const todoData = await get(`${API}/admin/todo?uuid=${uuid}`);
+
+        renderTasks(tasksData.tasks || []);
+        renderTodo(todoData.items || []);
+
+    } catch (err) {
+        status.textContent = "Error loading admin data.";
+        console.error(err);
+    }
+}
+
+
+let uuid = "";
+
+dayFilter?.addEventListener("change", loadAdmin);
+sortMode?.addEventListener("change", loadAdmin);
+
+loadAdmin().catch(console.error);
